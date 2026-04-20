@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — CamCut · EdgeCase Labs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a;
+      --surface: #121212;
+      --border: #1f1f1f;
+      --border-strong: #2a2a2a;
+      --text: #f5f5f5;
+      --text-dim: #9ca3af;
+      --text-faint: #6b7280;
+      --accent: #ef4444;
+    }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 16px; line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.15s; }
+    a:hover { color: #fff; }
+
+    nav.top {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      background: rgba(10, 10, 10, 0.72);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1120px; margin: 0 auto; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+    .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px rgba(239, 68, 68, 0.6); }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+    .nav-links a:hover { color: var(--text); }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 72px 32px 80px; }
+    .page-eyebrow {
+      font-size: 12px; color: var(--text-faint); letter-spacing: 0.14em;
+      text-transform: uppercase; font-weight: 600; margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 44px);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px;
+      background: linear-gradient(180deg, #ffffff 30%, #888888 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .meta { font-size: 13px; color: var(--text-faint); margin-bottom: 40px; }
+    .summary-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px; padding: 20px 22px; margin-bottom: 48px;
+      font-size: 14px; color: var(--text-dim); line-height: 1.65;
+    }
+    .summary-box strong { color: var(--text); }
+
+    h2 { font-size: 22px; font-weight: 600; color: var(--text); margin: 48px 0 14px; letter-spacing: -0.01em; }
+    h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 28px 0 8px; }
+    p { color: var(--text-dim); margin-bottom: 16px; font-size: 15px; }
+    ul { margin: 0 0 16px 20px; color: var(--text-dim); }
+    ul li { margin-bottom: 8px; font-size: 15px; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; background: var(--surface); border-radius: 10px; overflow: hidden; }
+    th { background: #1a1a1a; color: var(--text); text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border-strong); font-weight: 500; font-size: 13px; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+
+    .caps {
+      font-size: 13px; color: var(--text-dim);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 22px; margin-bottom: 16px;
+      line-height: 1.7; letter-spacing: 0.01em;
+    }
+
+    footer { border-top: 1px solid var(--border); padding: 48px 0 64px; }
+    .footer-inner { max-width: 1120px; margin: 0 auto; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .footer-brand { font-size: 13px; color: var(--text-faint); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--text-faint); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-note { width: 100%; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border); font-size: 12px; color: #404040; }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <span class="brand-dot"></span>
+      <span>EdgeCase Labs</span>
+    </a>
+    <div class="nav-links">
+      <a href="/camcut/">CamCut</a>
+      <a href="/support.html">Support</a>
+      <a href="https://x.com/edgecase411" target="_blank" rel="noopener">X</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-eyebrow">Legal</div>
+  <h1>Terms of Service</h1>
+  <div class="meta">Last Updated: April 20, 2026 &nbsp;·&nbsp; Effective Date: April 20, 2026</div>
+
+  <div class="summary-box">
+    <strong>Summary:</strong> By using CamCut, you agree to these terms. The core app is free. CamCut Premium is a one-time purchase that unlocks overlay features. You own your videos. We are not affiliated with Tesla. Disputes are governed by California law.
+  </div>
+
+  <h2>1. Acceptance of Terms</h2>
+  <p>These Terms of Service ("Terms") are a legally binding agreement between you and EdgeCase Labs LLC, a California limited liability company ("we," "us," or "our"), governing your use of the CamCut mobile application (the "App").</p>
+  <p>By downloading, installing, or using the App, you agree to be bound by these Terms and our <a href="/privacy.html">Privacy Policy</a>. If you do not agree, do not use the App.</p>
+
+  <h2>2. Eligibility</h2>
+  <p>You must be at least 13 years of age to use the App. If you are under 18, you represent that a parent or legal guardian has reviewed and agreed to these Terms on your behalf. By using the App, you confirm that you have the legal capacity to enter into this agreement.</p>
+
+  <h2>3. Description of Service</h2>
+  <p>CamCut is a video editing application for Tesla dashcam footage. It provides:</p>
+  <ul>
+    <li>Video import from USB drives or device storage</li>
+    <li>Multi-camera layout editing with synchronized playback</li>
+    <li>Telemetry overlays (speed, G-force, GPS map, and more)</li>
+    <li>Video trimming and export</li>
+    <li>All processing occurs entirely on your device — no uploads, no cloud</li>
+  </ul>
+
+  <h3>3.1 CamCut Premium</h3>
+  <p>CamCut Premium is an optional one-time in-app purchase that unlocks overlay features (telemetry bar, map, G-force, and more). It is not a subscription — you pay once and own it permanently.</p>
+  <table>
+    <tr><th>Detail</th><th>Description</th></tr>
+    <tr><td>Type</td><td>One-time non-consumable purchase (no recurring billing)</td></tr>
+    <tr><td>What it unlocks</td><td>All overlay features in CamCut</td></tr>
+    <tr><td>Billing</td><td>Charged once to your Apple ID at time of purchase</td></tr>
+    <tr><td>Restore</td><td>Available via "Restore Purchases" if you reinstall or change devices</td></tr>
+    <tr><td>Refunds</td><td>Handled by Apple per their refund policy</td></tr>
+  </table>
+  <p>Payment is processed entirely by Apple. We do not receive or store your payment information. By purchasing, you also agree to <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank">Apple's Standard End User License Agreement</a>.</p>
+
+  <h2>4. License Grant</h2>
+  <p>Subject to your compliance with these Terms, we grant you a limited, non-exclusive, non-transferable, revocable license to use the App on devices you own or control, solely for personal, non-commercial purposes.</p>
+  <p>You may <strong>not</strong>:</p>
+  <ul>
+    <li>Reverse engineer, decompile, or attempt to extract the App's source code</li>
+    <li>Modify, adapt, or create derivative works of the App</li>
+    <li>Rent, lease, sell, or sublicense the App to any third party</li>
+    <li>Use the App to develop a competing product or service</li>
+    <li>Remove or circumvent any licensing or security mechanisms</li>
+  </ul>
+
+  <h2>5. User Content</h2>
+  <p>You retain full ownership of all videos and content you import into or create with the App. We do not claim any ownership rights over your content, and we never access or upload it.</p>
+  <p>You are solely responsible for:</p>
+  <ul>
+    <li>Ensuring you have the right to use any content you import</li>
+    <li>Complying with local laws regarding dashcam recordings and their distribution</li>
+    <li>Respecting the privacy of individuals appearing in your videos before sharing publicly</li>
+    <li>Backing up your content (we are not responsible for data loss)</li>
+  </ul>
+
+  <h2>6. Intellectual Property</h2>
+  <p>CamCut and all related intellectual property — including the App's code, design, interface, and the EdgeCase Labs name and logo — are owned by EdgeCase Labs LLC or its licensors. Nothing in these Terms grants you any rights in our intellectual property beyond the limited license in Section 4.</p>
+  <p><strong>Tesla Disclaimer:</strong> CamCut is an independent application and is not affiliated with, endorsed by, or sponsored by Tesla, Inc. "Tesla," "Full Self-Driving," "Autopilot," and related marks are trademarks of Tesla, Inc.</p>
+  <p>If you provide feedback or suggestions about the App, you grant us a perpetual, royalty-free license to use and incorporate that feedback without obligation to you.</p>
+
+  <h2>7. Disclaimers</h2>
+  <div class="caps">
+    THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE APP WILL BE ERROR-FREE, UNINTERRUPTED, OR COMPATIBLE WITH ALL DEVICES OR TESLA FIRMWARE VERSIONS.
+  </div>
+
+  <h2>8. Limitation of Liability</h2>
+  <div class="caps">
+    TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL EDGECASE LABS LLC BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR VIDEOS, ARISING FROM YOUR USE OF OR INABILITY TO USE THE APP. OUR TOTAL LIABILITY SHALL NOT EXCEED THE GREATER OF THE AMOUNT YOU PAID FOR CAMCUT PREMIUM IN THE PRECEDING TWELVE MONTHS OR ONE HUNDRED US DOLLARS ($100).
+  </div>
+
+  <h2>9. Indemnification</h2>
+  <p>You agree to indemnify and hold harmless EdgeCase Labs LLC and its officers, members, and agents from any claims, damages, or expenses (including reasonable attorneys' fees) arising from your use of the App, your content, or your violation of these Terms or any applicable law.</p>
+
+  <h2>10. Termination</h2>
+  <p>You may stop using the App at any time by deleting it from your device. We may suspend or terminate your access to the App if you breach these Terms. Sections 5, 6, 7, 8, 9, and 11 survive termination.</p>
+
+  <h2>11. Governing Law and Disputes</h2>
+  <p>These Terms are governed by the laws of the State of California, United States, without regard to conflict of law principles. Any disputes not resolved informally shall be subject to the exclusive jurisdiction of the state and federal courts located in California.</p>
+  <p>Before initiating any legal action, you agree to contact us at <a href="mailto:edgecase411@gmail.com">edgecase411@gmail.com</a> and attempt to resolve the dispute informally.</p>
+
+  <h2>12. Apple-Specific Terms</h2>
+  <p>If you downloaded the App from the Apple App Store:</p>
+  <ul>
+    <li>These Terms are between you and EdgeCase Labs LLC — not Apple</li>
+    <li>Apple has no obligation to provide maintenance or support for the App</li>
+    <li>Apple is not responsible for any product warranties, claims, or third-party intellectual property claims</li>
+    <li>Apple and its subsidiaries are third-party beneficiaries of these Terms and may enforce them against you</li>
+  </ul>
+
+  <h2>13. Changes to Terms</h2>
+  <p>We may update these Terms from time to time. Material changes will be reflected in the "Last Updated" date above. Continued use of the App after changes constitutes acceptance.</p>
+
+  <h2>14. Contact Us</h2>
+  <p>
+    EdgeCase Labs LLC<br>
+    California, United States<br>
+    <a href="mailto:edgecase411@gmail.com">edgecase411@gmail.com</a>
+  </p>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">EdgeCase Labs LLC · California</div>
+    <div class="footer-links">
+      <a href="/camcut/">CamCut</a>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+    <div class="footer-note">&copy; 2026 EdgeCase Labs LLC. All rights reserved. Not affiliated with Tesla, Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>
