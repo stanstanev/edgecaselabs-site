@@ -1,0 +1,2392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="An independent survey of Tesla FSD progress: 36 weighted criteria scored across every major release since 2023, measured against the score each capability needs for unsupervised operation.">
+
+<title>FSD Progress Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Nanum+Brush+Script&display=swap">
+<style>
+/* ============================================================
+   FSD Progress Tracker — single-theme dark.
+   Colour discipline: the ONLY colours that carry meaning are the
+   four from the survey key (red / orange / green / blue) plus the
+   green threshold. Nothing else on the page is coloured.
+   ============================================================ */
+:root{
+  color-scheme: dark;
+  --ground:#0a0d13; --panel:#111621; --panel-2:#161c29; --raised:#1c2433;
+  --rule:#222b3a; --rule-2:#333f52; 
+  --ink:#eef2f8; --ink-2:#a3aebf; --ink-3:#6f7b8e; --ink-4:#4a5568;
+  --accent:#5ad1e0; --trend:#7fb2e6;
+  /* previous trend: burnt sienna. Validated in OKLab against every series on
+     the chart - 22 dE from the we-are-here red and 17 from the category
+     orange, which is the tighter of the two. Drawn at .72 it lands at 2.8:1
+     on the panel, well under the current trend's 4.8, so it reads as the
+     older, quieter line without disappearing. */
+  --ptrend:#b06a4e;
+  --hw3:#d9a3ea;   /* HW3 branch: 9.6:1 on the ground, 25 dE from the orange */
+  --thresh:#2fbf78; --thresh-wash:rgba(47,191,120,.11); --thresh-edge:rgba(47,191,120,.40);
+
+  /* THE survey key — four colours, exactly as many as the sheet has */
+  /* Signal red with Signal Neon for the rest. Every band clears 4.5:1 on its
+     number and neighbouring bands separate by >=23 (OKLab dE x100). */
+  --k-red:#f83f3f; --k-orange:#ffb400; --k-green:#00e676; --k-blue:#22a7ff;
+
+  --f-display:"Barlow Condensed","Haettenschweiler",Impact,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --f-script:"Nanum Brush Script",cursive;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-display);font-weight:700}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+.wrap{max-width:1320px;margin:0 auto;padding:0 24px 90px}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--rule);background:linear-gradient(180deg,#0d1119,var(--ground))}
+.mast-in{max-width:1320px;margin:0 auto;padding:22px 24px 0;display:flex;flex-wrap:wrap;
+  gap:28px;align-items:flex-end;justify-content:space-between}
+.brand-eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-3)}
+.brand h1{font-size:clamp(32px,4.4vw,48px);line-height:.96;text-transform:uppercase;letter-spacing:.01em}
+.brand h1 em{font-style:normal;color:var(--ink-3)}
+.brand-sub{margin-top:8px;font-size:15px;color:var(--ink-2);max-width:56ch}
+.readout{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:9px;overflow:hidden}
+.ro{background:var(--panel);padding:10px 20px 12px;min-width:118px}
+.ro-k{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.ro-out{font-size:.5em;font-weight:600;color:var(--ink-3);letter-spacing:.02em}
+.ro-v{font-family:var(--f-display);font-size:34px;font-weight:700;line-height:1.05;
+  font-variant-numeric:tabular-nums;margin-top:2px}
+.ro-n{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);margin-top:1px}
+
+/* ---------- tabs ---------- */
+.tabs{max-width:1320px;margin:0 auto;padding:18px 24px 0;display:flex;gap:2px}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;cursor:pointer;
+  font-family:var(--f-display);font-size:18px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);padding:9px 18px 12px;transition:.15s}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+
+/* ---------- control rail ---------- */
+.rail{display:flex;flex-wrap:wrap;gap:20px 32px;align-items:flex-start;padding:16px 20px;
+  margin:22px 0 20px;background:var(--panel);border:1px solid var(--rule);border-radius:11px}
+.rail-grp{display:flex;flex-direction:column;gap:9px;min-width:0}
+.rail-lab{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:10.5px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.rail-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;cursor:pointer;font-family:var(--f-mono);font-size:12.5px;font-weight:500;
+  background:var(--panel-2);color:var(--ink-3);border:1px solid var(--rule-2);border-radius:6px;
+  padding:6px 11px;display:inline-flex;align-items:center;gap:8px;transition:.14s;white-space:nowrap}
+.chip:hover{border-color:var(--ink-4);color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--raised);color:var(--ink);border-color:var(--ink-3)}
+.chip .dt{font-size:10.5px;color:var(--ink-3)}
+.chip[aria-pressed="true"] .dt{color:var(--ink-2)}
+.chip .dot{width:9px;height:9px;border-radius:2px;background:currentColor;opacity:.3;flex:none}
+.chip[aria-pressed="true"] .dot{opacity:1}
+.mini{appearance:none;cursor:pointer;background:none;border:1px solid var(--rule-2);border-radius:5px;
+  color:var(--ink-3);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;padding:4px 10px;transition:.14s}
+.mini:hover{color:var(--ink);border-color:var(--ink-3)}
+
+/* ---------- panels ---------- */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:13px}
+.panel-hd{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;justify-content:space-between;
+  padding:16px 22px 13px;border-bottom:1px solid var(--rule)}
+.panel-hd h2{font-size:21px;letter-spacing:.05em;text-transform:uppercase}
+.panel-hd p{margin:4px 0 0;font-size:13.5px;color:var(--ink-3);max-width:70ch}
+.view[hidden]{display:none}
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+.chart-box{padding:18px 20px 20px}
+
+/* ---------- chart type ---------- */
+.gridline{stroke:var(--rule);stroke-width:1}
+.axis-t{font-family:var(--f-mono);font-size:15px;fill:var(--ink-3)}
+.date-t{font-family:var(--f-mono);font-size:16.5px;fill:var(--ink-2)}
+.vlabel{font-family:var(--f-mono);font-size:13.5px;font-weight:600;fill:var(--ink-2)}
+.vscore{font-family:var(--f-mono);font-size:18px;font-weight:500;fill:var(--ink);
+  font-variant-numeric:tabular-nums}
+tr.notpublic .rel-v,tr.notpublic .rel-d,tr.notpublic .rel-gap{opacity:.5}
+.rel-tag.off{background:var(--raised);color:var(--ink-3);border-color:var(--rule-2)}
+.ptrend-t{font-family:var(--f-mono);font-size:10.5px;font-weight:500;letter-spacing:.08em;fill:var(--ptrend)}
+.dur-t{font-family:var(--f-mono);font-size:14.5px;font-weight:500;letter-spacing:.06em;fill:var(--ink-2)}
+.era-t{font-family:var(--f-mono);font-size:16px;font-weight:500;letter-spacing:.14em;fill:var(--ink-3)}
+.band-t{font-family:var(--f-display);font-size:16.25px;font-weight:600;letter-spacing:.18em;fill:var(--thresh)}
+.trend-t{font-family:var(--f-mono);font-size:12.5px;fill:var(--ink-4)}
+.pt-hit{fill:transparent;cursor:pointer}
+.pin-stem{stroke:var(--ink-4);stroke-width:1;stroke-dasharray:2 4}
+.qcard{cursor:grab}
+.qcard:active{cursor:grabbing}
+.qcard:hover rect:first-child{stroke:var(--accent)}
+.pin-hd{cursor:pointer}
+.serieslab{font-family:var(--f-mono);font-size:12.5px;font-weight:500}
+
+/* ---------- the key: read down, like the sheet ---------- */
+.keywrap{display:flex;flex-wrap:wrap;gap:26px 44px;padding:20px 22px 24px;border-top:1px solid var(--rule)}
+.keytitle{font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:13px}
+/* proportions mirror the PNG's key: a wide chip, a real gap, air between rows */
+table.key{border-collapse:separate;border-spacing:0 6px}
+table.key td{padding:0;vertical-align:middle;white-space:nowrap}
+table.key .sw{width:62px;height:26px;border-radius:4px;text-align:center;font-family:var(--f-mono);
+  font-size:13.5px;font-weight:700;line-height:26px}
+table.key .dsc{color:var(--ink-2);font-size:15px;padding-left:16px}
+.legend-line{display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--ink-2)}
+.legend-line i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:10px}
+
+.sum-wrap{overflow-x:auto;padding:30px 22px 20px;border-top:1px solid var(--rule)}
+table.rel{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+table.rel th{text-align:left;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:400;padding:0 16px 9px 0;
+  border-bottom:1px solid var(--rule-2)}
+table.rel td{padding:9px 16px 9px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-2)}
+table.rel tr.surveyed td{color:var(--ink)}
+table.rel tr.surveyed .rel-v{color:#fff;font-weight:600}
+.rel-v{font-family:var(--f-mono);font-size:14px;color:var(--ink);white-space:nowrap}
+.rel-d{font-family:var(--f-mono);font-size:13px;white-space:nowrap}
+.rel-gap{font-family:var(--f-mono);font-size:12.5px;color:var(--ink-4);white-space:nowrap}
+.rel-tag{display:inline-block;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;
+  border:1px solid var(--rule-2);border-radius:20px;padding:2px 9px;color:var(--ink-3)}
+.rel-tag.on{border-color:var(--accent);color:var(--accent)}
+.rel-note{font-size:13px;color:var(--ink-3)}
+table.sum{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;width:auto}
+table.sum th,table.sum td{padding:0}
+.sum-h{font-family:var(--f-body);font-size:13.5px;font-weight:500;letter-spacing:.01em;
+  color:#fff;text-align:center;padding:0 5px 11px !important;white-space:nowrap;min-width:62px}
+.sum-h span{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-2);font-weight:400;letter-spacing:0}
+.sum-h.tgt{color:var(--thresh)}
+.sum-corner{text-align:left;padding:0 16px 11px 2px !important;font-family:var(--f-mono);
+  font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
+.sum-name{text-align:left;font-family:var(--f-display);font-size:15px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);
+  padding:0 16px 0 2px !important;white-space:nowrap;height:30px}
+.sum-cell{width:62px;min-width:62px;height:30px;line-height:30px;text-align:center;
+  vertical-align:middle;font-family:var(--f-mono);font-size:14px;font-weight:600;
+  border:1px solid var(--ground)}
+.sum-tgt{width:62px;min-width:62px;height:30px;line-height:30px;text-align:center;vertical-align:middle;
+  font-family:var(--f-mono);font-size:14px;background:var(--panel-2);color:var(--thresh);
+  border:1px solid var(--ground)}
+.sum-gap td{height:15px;padding:0 !important;border-top:2px solid var(--ink-2)}
+.sum-tot td,.sum-tot th{padding-top:0 !important}
+.sum-tot .sum-name{font-size:16px;font-weight:700;color:#fff}
+.sum-tot .sum-cell{height:30px;line-height:30px;font-size:17px;font-weight:700}
+.sum-tot .sum-tgt{height:30px;line-height:30px;font-size:17px;font-weight:700;color:var(--thresh)}
+
+/* ---------- matrix: must fit a 9:16 frame with the key, so category
+   labels run vertically down a rail instead of eating a row each ---------- */
+.mx-scroll{overflow-x:auto;padding:0 56px 14px 22px}
+table.mx{border-collapse:separate;border-spacing:0;width:auto;font-variant-numeric:tabular-nums}
+table.mx th,table.mx td{padding:0}
+.mx-vhead{height:80px;vertical-align:bottom;padding:0 !important;position:relative}
+.mx-vhead>div{position:absolute;left:12px;bottom:9px;width:0;height:0;
+  transform:rotate(-45deg);transform-origin:0 100%;white-space:nowrap;
+  font-family:var(--f-body);font-size:13.5px;font-weight:500;letter-spacing:.01em;
+  color:#fff}
+.mx-vhead.tgt>div{color:var(--thresh)}
+.mx-corner{text-align:left;vertical-align:bottom;padding:0 0 7px 2px !important;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
+.mx-rail{width:34px;padding:0 12px 0 0 !important;vertical-align:middle}
+.mx-rail>div{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;
+  font-family:var(--f-display);font-size:14.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:#fff;background:var(--panel-2);border-radius:4px;
+  padding:9px 8px;white-space:nowrap}
+.mx-feat{text-align:left;font-weight:400;font-size:15px;color:var(--ink-2);
+  padding:0 18px 0 2px !important;white-space:nowrap;cursor:pointer;height:28px}
+.mx-feat:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.mx-cell{width:64px;min-width:64px;max-width:64px;height:28px;line-height:28px;
+  text-align:center;vertical-align:middle;font-family:var(--f-mono);font-size:15px;
+  font-weight:600;border:1px solid rgba(0,0,0,.34);cursor:default;color:#0a0d13}
+.mx-cell.has:hover{outline:2px solid var(--ink);outline-offset:-2px}
+.mx-cell.empty{background:var(--panel-2);color:var(--ink-4)}
+.mx-tgt{width:64px;min-width:64px;height:28px;line-height:28px;text-align:center;
+  vertical-align:middle;font-family:var(--f-mono);font-size:15px;background:var(--panel-2);
+  color:var(--ink-3);border:1px solid rgba(0,0,0,.34)}
+.mx-tgt.met{color:var(--thresh);font-weight:600}
+.catsep td{height:12px;padding:0 !important;border-bottom:1px solid var(--rule-2)}
+.mx-gapfoot td{height:12px;padding:0 !important}
+/* the total is a total: white, bold, no fill competing with the data above it */
+.mx-avg td,.mx-avg th{border-top:2px solid var(--ink-2);padding-top:8px !important}
+.mx-avg .mx-feat{font-family:var(--f-display);font-size:17px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:#fff;cursor:default;white-space:nowrap}
+.mx-avg .mx-feat:hover{text-decoration:none}
+.mx-avg .mx-cell{height:32px;line-height:32px;font-size:17px;font-weight:700}
+.mx-avg .mx-tgt{height:32px;line-height:32px;font-size:17px;font-weight:700;color:var(--thresh)}
+/* ---------- what's left ---------- */
+.gap-list{padding:10px 22px 20px;display:flex;flex-direction:column}
+.gap-row{display:grid;grid-template-columns:206px 1fr 78px;gap:14px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--rule)}
+.gap-row:last-child{border-bottom:0}
+.gap-name{font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.gap-name span{display:block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.03em;
+  text-transform:none;color:var(--ink-4);font-weight:400}
+.gap-track{position:relative;height:22px;background:var(--panel-2);border-radius:5px;overflow:hidden}
+.gap-fill{position:absolute;inset:0 auto 0 0;border-radius:5px;min-width:5px}
+.gap-need{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--thresh)}
+.gap-val{text-align:right;font-family:var(--f-mono);font-size:15px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.gap-val span{display:block;font-size:11px;font-weight:400;color:var(--ink-3)}
+
+/* ---------- tooltip / drawer / events ---------- */
+#tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--raised);border:1px solid var(--rule-2);border-radius:9px;padding:11px 14px;
+  max-width:340px;box-shadow:0 12px 40px rgba(0,0,0,.7);font-size:13.5px;line-height:1.5}
+#tip.on{opacity:1}
+#tip .t-h{font-family:var(--f-display);font-size:17px;font-weight:700;margin-bottom:3px}
+#tip .t-m{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:7px}
+#tip .t-b{color:var(--ink-2)}
+#tip .t-r{display:flex;gap:16px;margin-top:9px;padding-top:9px;border-top:1px solid var(--rule-2);
+  font-family:var(--f-mono);font-size:11.5px}
+#tip .t-r b{font-weight:700;font-size:15px}
+#drawer{position:fixed;inset:0;z-index:80;display:none;background:rgba(4,6,10,.74)}
+#drawer.on{display:block}
+.dr-card{position:absolute;right:0;top:0;bottom:0;width:min(500px,94vw);background:var(--panel);
+  border-left:1px solid var(--rule-2);padding:28px 30px;overflow-y:auto}
+.dr-close{position:absolute;top:16px;right:18px;appearance:none;background:none;border:0;
+  cursor:pointer;color:var(--ink-3);font-size:26px;line-height:1;padding:4px 8px}
+.dr-close:hover{color:var(--ink)}
+.dr-cat{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.dr-card h3{font-size:27px;line-height:1.08;margin:8px 0 13px;max-width:22ch}
+.dr-desc{font-size:14.5px;color:var(--ink-2);margin:0 0 22px}
+.dr-stats{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:8px;overflow:hidden;margin-bottom:22px}
+.dr-stat{background:var(--panel-2);padding:10px 14px;flex:1}
+.dr-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:20px}
+.flagpill{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  border:1px solid var(--rule-2);border-radius:20px;padding:3px 11px;color:var(--ink-3)}
+.ev-list{padding:8px 22px 20px;display:flex;flex-direction:column;gap:10px}
+.post-ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;
+  padding:14px 22px;border-bottom:1px solid var(--rule)}
+#post-search{flex:1 1 260px;min-width:0;background:var(--panel-2);border:1px solid var(--rule-2);
+  border-radius:7px;color:var(--ink);font-family:var(--f-body);font-size:14px;padding:9px 12px}
+#post-search::placeholder{color:var(--ink-4)}
+.post-list{max-height:620px;overflow-y:auto;padding:4px 22px 18px}
+.post{display:grid;grid-template-columns:26px 96px 1fr;gap:14px;align-items:start;
+  padding:11px 0;border-bottom:1px solid var(--rule);cursor:pointer}
+.post:last-child{border-bottom:0}
+.post:hover{background:rgba(255,255,255,.02)}
+.post-box{width:18px;height:18px;margin-top:2px;border:1.5px solid var(--rule-2);border-radius:4px;
+  display:grid;place-items:center;color:transparent;font-size:12px;font-weight:700;flex:none}
+.post[aria-selected="true"] .post-box{background:var(--accent);border-color:var(--accent);color:#06222a}
+.post-date{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);padding-top:2px}
+.post-date span{display:block;color:var(--ink-4);font-size:10px;margin-top:3px}
+.post-q{font-size:14px;color:var(--ink-2);line-height:1.5}
+.post[aria-selected="true"] .post-q{color:var(--ink)}
+.post-meta{margin-top:6px;font-family:var(--f-mono);font-size:11px;color:var(--ink-4);
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.post-meta b{color:var(--ink-2);font-weight:600}
+.post-out{color:var(--ink-4);font-size:12.5px;padding:14px 22px}
+.post-trim{margin-top:10px;display:flex;flex-direction:column;gap:7px;align-items:flex-start;
+  background:var(--panel-2);border:1px solid var(--rule);border-radius:8px;padding:10px 12px}
+.post-trim label,.post-json label{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3)}
+.post-trim textarea,.post-json textarea{width:100%;resize:vertical;background:var(--ground);
+  border:1px solid var(--rule-2);border-radius:6px;color:var(--ink);font-family:var(--f-body);
+  font-size:13px;line-height:1.5;padding:8px 10px}
+.post-json{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.post-json label{text-transform:none;letter-spacing:.02em;font-family:var(--f-body);font-size:12px;
+  color:var(--ink-3)}
+.post-json textarea{font-family:var(--f-mono);font-size:11px;color:var(--ink-2)}
+.ev{display:grid;grid-template-columns:104px 1fr;gap:16px;padding:13px 16px;background:var(--panel-2);
+  border:1px solid var(--rule);border-left:3px solid var(--ink-4);border-radius:8px}
+.ev-date{font-family:var(--f-mono);font-size:12px;color:var(--ink-3)}
+.ev-who{font-family:var(--f-display);font-size:17px;font-weight:600;letter-spacing:.03em}
+.ev-claim{font-size:14px;color:var(--ink-2);margin-top:3px}
+.ev-delta{margin-top:9px;font-family:var(--f-mono);font-size:12px;color:var(--ink-3)}
+.ev-delta b{font-size:14px;color:var(--ink)}
+.note{padding:14px 22px 18px;font-size:13px;color:var(--ink-3);border-top:1px solid var(--rule);max-width:88ch}
+.note code{font-family:var(--f-mono);font-size:12px;background:var(--panel-2);padding:2px 6px;
+  border-radius:3px;color:var(--ink-2)}
+.foot{margin-top:28px;padding-top:18px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;
+  gap:16px;justify-content:space-between;font-family:var(--f-mono);font-size:11px;color:var(--ink-4)}
+@media (max-width:760px){.gap-row{grid-template-columns:128px 1fr 66px;gap:10px}
+  .ev{grid-template-columns:1fr;gap:5px}}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="mast-in">
+    <div class="brand">
+      <div class="brand-eyebrow">&#120143;@EdgeCase411 &middot; independent survey &middot; <span id="span-range"></span></div>
+      <h1>FSD Progress <em>Tracker</em></h1>
+      <p class="brand-sub"><span id="span-nfeat"></span> scored criteria, every major FSD release since 2023 &mdash;
+        measured against the score each capability needs for unsupervised operation.</p>
+    </div>
+    <div class="readout">
+      <div class="ro"><div class="ro-k">Current score</div><div class="ro-v" id="ro-cur">&mdash;</div><div class="ro-n" id="ro-curv"></div></div>
+      <div class="ro"><div class="ro-k">To the band</div><div class="ro-v" id="ro-gap">&mdash;</div><div class="ro-n" id="ro-gapn"></div></div>
+      <div class="ro"><div class="ro-k">Since 2023</div><div class="ro-v" id="ro-since">&mdash;</div><div class="ro-n" id="ro-sincen"></div></div>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="timeline" aria-selected="true">Timeline</button>
+    <button class="tab" role="tab" data-view="matrix"   aria-selected="false">Matrix</button>
+    <button class="tab" role="tab" data-view="gap"      aria-selected="false">What&rsquo;s left</button>
+    
+    <button class="tab" role="tab" data-view="releases" aria-selected="false">Releases</button>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div class="rail">
+    <div class="rail-grp" style="flex:1 1 480px">
+      <div class="rail-lab"><span>Releases shown</span>
+        <button class="mini" id="preset-major">Majors</button>
+        <button class="mini" id="preset-all">All 10</button></div>
+      <div class="rail-row" id="version-chips"></div>
+    </div>
+    <div class="rail-grp" id="grp-cats">
+      <div class="rail-lab"><span>Break out categories</span></div>
+      <div class="rail-row" id="cat-chips"></div>
+    </div>
+    <div class="rail-grp" id="grp-pins">
+      <div class="rail-lab"><span>Annotations</span></div>
+      <div class="rail-row">
+        <button class="chip" id="toggle-here" aria-pressed="true">
+          <span class="dot"></span>We are here</button>
+        
+        <button class="chip" id="toggle-stairs" aria-pressed="true">
+          <span class="dot"></span>Staircase</button>
+        <button class="chip" id="toggle-scores" aria-pressed="true">
+          <span class="dot"></span>Scores</button>
+        <button class="chip" id="toggle-trend" aria-pressed="true">
+          <span class="dot"></span>Trend</button>
+        <button class="chip" id="toggle-band" aria-pressed="true">
+          <span class="dot"></span>Threshold band</button>
+        <button class="chip" id="toggle-eras" aria-pressed="true">
+          <span class="dot"></span>Major versions</button>
+        <button class="chip" id="toggle-ptrend" aria-pressed="false">
+          <span class="dot"></span>Previous trends</button>
+        <button class="chip" id="toggle-durs" aria-pressed="true">
+          <span class="dot"></span>Version gaps</button>
+        <button class="chip" id="toggle-allrel" aria-pressed="false">
+          <span class="dot"></span>All releases</button>
+        <button class="chip" id="toggle-hw3" aria-pressed="false">
+          <span class="dot"></span>HW3 branch</button>
+      </div>
+    </div>
+    <div class="rail-grp" id="grp-cols">
+      <div class="rail-lab"><span>Columns</span></div>
+      <div class="rail-row">
+        <button class="chip" id="toggle-target" aria-pressed="false">
+          <span class="dot"></span>Target</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel view" id="view-timeline">
+    <div class="panel-hd">
+      <div><h2>Weighted score over time</h2>
+        <p>Flat between releases, stepping when a build lands.</p></div>
+      <button class="mini" id="dl-timeline">&#8595; Download PNG</button>
+    </div>
+    <div class="chart-box"><svg class="chart" id="svg-timeline" role="img" aria-label="Weighted FSD score by release"></svg></div>
+  </section>
+
+  <section class="panel view" id="view-matrix" hidden>
+    <div class="panel-hd">
+      <div><h2>The full survey</h2>
+        <p>Every criterion, every release. Hover a cell for what it measures and what changed; click a row for its full history.
+           <b id="mx-thresh-note"></b></p></div>
+      <button class="mini" id="dl-matrix">&#8595; Download PNG</button>
+    </div>
+    <div class="mx-scroll"><table class="mx" id="tbl-matrix"></table></div>
+    <div class="keywrap" id="key-matrix"></div>
+  </section>
+
+  <section class="panel view" id="view-gap" hidden>
+    <div class="panel-hd">
+      <div><h2>What&rsquo;s left before robotaxi</h2>
+        <p>Weighted score today against the score it needs to reach. The green marker is the target.</p></div>
+      <button class="mini" id="dl-gap">&#8595; Download PNG</button>
+    </div>
+    <div class="gap-list" id="gap-cats"></div>
+    <div class="panel-hd" style="border-top:1px solid var(--rule)">
+      <div><h2 style="font-size:17px">Furthest individual criteria</h2>
+        <p>The specific things holding those categories back, ranked by gap &times; weight.</p></div>
+    </div>
+    <div class="gap-list" id="gap-feats"></div>
+  </section>
+
+
+
+  <section class="panel view" id="view-releases" hidden>
+    <div class="panel-hd">
+      <div><h2>FSD release history</h2>
+        <p>Public first-release dates, for cross-checking the survey. These run ahead of the
+           survey dates &mdash; Tesla rolls out in waves, so a build appears weeks or months before
+           any one driver receives and scores it. <b id="rel-note"></b></p></div>
+    </div>
+    <div class="mx-scroll"><table class="rel" id="tbl-releases"></table></div>
+    <div class="note">Edit <code>fsd-releases.csv</code> and rebuild to correct or extend this.
+      Compiled Aug 2026 from
+      <a href="https://www.fsdupdate.com/" target="_blank" rel="noopener">fsdupdate.com</a>,
+      <a href="https://www.notateslaapp.com/fsd-beta/" target="_blank" rel="noopener">notateslaapp.com</a> and
+      <a href="https://www.hw4checker.com/fsd-updates" target="_blank" rel="noopener">hw4checker.com</a>.
+      Dates marked <i>approx</i> are month-only in the sources.</div>
+  </section>
+
+  <div class="foot">
+    <span>Source: personal survey by &#120143;@EdgeCase411 &middot; one driver&rsquo;s observations, not Tesla data</span>
+    <span id="foot-gen"></span>
+  </div>
+</main>
+
+<span aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;
+  font-family:var(--f-script);font-size:100px">@EdgeCase411</span>
+<div id="tip" role="tooltip"></div>
+<div id="drawer" hidden><div class="dr-card" role="dialog" aria-modal="true" aria-label="Criterion detail">
+  <button class="dr-close" id="dr-close" aria-label="Close">&times;</button><div id="dr-body"></div></div></div>
+<style>
+#poster{position:fixed;inset:0;z-index:100;display:none;background:rgba(3,5,9,.94);
+  padding:20px;overflow:auto;text-align:center}
+#poster.on{display:block}
+#poster img{max-width:min(100%,1180px);height:auto;border-radius:8px;border:1px solid var(--rule-2)}
+.po-bar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;
+  max-width:1180px;margin:0 auto 14px;padding:12px 18px;background:var(--panel);
+  border:1px solid var(--rule);border-radius:9px}
+.po-bar p{margin:0;font-size:13px;color:var(--ink-2);text-align:left;flex:1 1 300px}
+</style>
+<div id="poster"><div class="po-bar">
+  <p id="po-note"></p>
+  <button class="mini" id="po-dl" hidden>&#8595; Save PNG</button>
+  <button class="mini" id="po-close">Close</button>
+</div><img id="po-img" alt="Shareable chart"></div>
+
+<script>
+const DATA = {"forkAt":"12.3.x","band":[8.5,9.0],"now":{"date":"2026-09-10","build":"14.3.8"},"versions":[{"id":"10-69-25-2","label":"10.69.25.2","date":"2023-01-16","default":true,"track":"shared"},{"id":"11-3-6","label":"11.3.6","date":"2023-04-08","default":true,"track":"shared"},{"id":"11-4-2","label":"11.4.2","date":"2023-05-26","default":false,"track":"shared"},{"id":"11-4-4","label":"11.4.4","date":"2023-06-19","default":true,"track":"shared"},{"id":"12-2-1","label":"12.2.1","date":"2024-02-18","default":false,"track":"shared"},{"id":"12-3-x","label":"12.3.x","date":"2024-03-12","default":true,"track":"shared"},{"id":"13-2-x","label":"13.2.x","date":"2024-11-30","default":true,"track":"hw4"},{"id":"12-6-x","label":"12.6.x","date":"2024-12-30","default":false,"track":"hw3"},{"id":"14-2-x","label":"14.2.x","date":"2025-11-21","default":true,"track":"hw4"},{"id":"14-3-x","label":"14.3.x","date":"2026-04-07","default":true,"track":"hw4"}],"categories":[{"id":"comfort","name":"COMFORT","short":"Comfort","count":8},{"id":"common","name":"COMMON SAFETY CRITICAL","short":"Common Safety-Critical","count":6},{"id":"rare","name":"LESS FREQUENT SAFETY CRITICAL","short":"Less Frequent Safety-Critical","count":5},{"id":"law","name":"FOLLOW THE LAW","short":"Follow the Law","count":6},{"id":"robotaxi","name":"ROBOTAXI SPECIFIC","short":"Robotaxi-Specific","count":5},{"id":"misc","name":"MISC.","short":"Miscellaneous","count":4}],"features":[{"id":"smooth-right-left-turns","name":"Smooth right/left turns","cat":"comfort","weight":5.0,"thresh":9.0,"desc":"A turn should be completed in a single swoop without any hesitation (hesitation is observed with the wheel jerking back and forth during a turn)","scores":{"10-69-25-2":7.0,"11-3-6":8.0,"11-4-2":8.0,"11-4-4":8.0,"12-2-1":10.0,"12-3-x":10.0,"13-2-x":10.0,"12-6-x":9.0,"14-2-x":10.0,"14-3-x":10.0},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":1},{"id":"smooth-hairpin-turns","name":"Smooth hairpin turns","cat":"comfort","weight":3.0,"thresh":9.0,"desc":"A hairpin turn occurs mostly at highway on-ramps/off-rams and should be smooth circular path following the inside lane markings, no hard braking to adjust speed","scores":{"10-69-25-2":3.0,"11-3-6":8.0,"11-4-2":8.0,"11-4-4":8.0,"12-2-1":10.0,"12-3-x":10.0,"13-2-x":10.0,"12-6-x":9.0,"14-2-x":10.0,"14-3-x":10.0},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":2},{"id":"smooth-and-prompt-lane-changes","name":"Smooth and prompt lane changes","cat":"comfort","weight":5.0,"thresh":9.0,"desc":"FSD should initiate a turn signal when adjacent lane is open and start moving over immediately with a gradual drift (instead of robotic jerk)","scores":{"10-69-25-2":3.0,"11-3-6":9.0,"11-4-2":9.0,"11-4-4":9.0,"12-2-1":9.0,"12-3-x":9.0,"13-2-x":10.0,"12-6-x":9.0,"14-2-x":9.5,"14-3-x":9.5},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":3},{"id":"lane-change-in-moderate-traffic","name":"Lane change in moderate traffic","cat":"comfort","weight":5.0,"thresh":9.0,"desc":"Moderate traffic on highway is roughly 15-40mph, FSD usually needs to either speed up or slow down to find a gap between cars and then intiate turn signal and complete lane change","scores":{"10-69-25-2":3.0,"11-3-6":8.0,"11-4-2":8.0,"11-4-4":9.0,"12-2-1":9.0,"12-3-x":9.0,"13-2-x":10.0,"12-6-x":9.0,"14-2-x":9.5,"14-3-x":9.5},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":4},{"id":"lane-change-in-heavy-bumper-to-bumper-traffic","name":"Lane change in heavy (bumper to bumper) traffic","cat":"comfort","weight":3.0,"thresh":8.0,"desc":"Heavy traffic is 0 to 15mph, FSD usually needs to stop and wait until gap forms or, in really heavy traffic, needs to initiate a turn signal for adjacent lane to create space","scores":{"10-69-25-2":1.0,"11-3-6":5.0,"11-4-2":6.0,"11-4-4":7.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":9.0,"12-6-x":9.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":5},{"id":"comfortable-stopping-accelerating","name":"Comfortable stopping/accelerating","cat":"comfort","weight":5.0,"thresh":8.0,"desc":"FSD should have a consistent slow down and acceleration curve from coasting to 0 speed and 0 to coasting. No abrupt stops at yellow lights.","scores":{"10-69-25-2":7.0,"11-3-6":8.0,"11-4-2":8.0,"11-4-4":8.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":9.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":8.5},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":6},{"id":"merging-into-highway-w-heavy-traffic","name":"Merging into highway w/ heavy traffic","cat":"comfort","weight":5.0,"thresh":9.0,"desc":"FSD should find the earliest gap in cars to merge with traffic. Only in bumper-to-bumper traffic it should proceed slowly all the way to the end of the merge lane.","scores":{"10-69-25-2":6.0,"11-3-6":6.0,"11-4-2":7.0,"11-4-4":8.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":9.0,"12-6-x":9.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":7},{"id":"slow-down-smooth-over-speed-bump-or-dips","name":"Slow down/smooth over speed bump or dips","cat":"comfort","weight":5.0,"thresh":9.0,"desc":"FSD should slow down to the appropriate speed for type of speed bump (NOTE: some speed bumps require to slow down to 5 MPH, others to 25)","scores":{"10-69-25-2":5.0,"11-3-6":5.0,"11-4-2":5.0,"11-4-4":5.0,"12-2-1":9.0,"12-3-x":9.0,"13-2-x":9.0,"12-6-x":9.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":8},{"id":"consistent-unprotected-left-turns","name":"Consistent unprotected left turns","cat":"common","weight":5.0,"thresh":8.0,"desc":"Unprotected left turn can be at traffic light started from the middle of the intersection in the leftmost lane, or non-traffic light intersection \"Chuck Cook style\". In both scenarios FSD should not get stuck in the middle of the road impeding cross traffic","scores":{"10-69-25-2":6.0,"11-3-6":6.0,"11-4-2":6.0,"11-4-4":6.0,"12-2-1":6.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":7.0,"14-3-x":7.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":9},{"id":"consistent-right-turn-on-red","name":"Consistent right turn on red","cat":"common","weight":5.0,"thresh":9.0,"desc":"When at an intersection and we have a red light, FSD should yield to cross traffic, opposing traffic with left turn on green arrow, and proceed to turn on red only when safe","scores":{"10-69-25-2":6.0,"11-3-6":6.0,"11-4-2":6.0,"11-4-4":6.0,"12-2-1":7.0,"12-3-x":8.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":10},{"id":"operation-in-rain-inclement-weather","name":"Operation in rain/inclement weather","cat":"common","weight":5.0,"thresh":9.0,"desc":"Once FSD is engaged, the software should allow driver to keep FSD enabled throughout the entire trip whether its light or heavy rain","scores":{"10-69-25-2":2.0,"11-3-6":7.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":8.0,"12-6-x":7.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":11},{"id":"merging-cars-into-our-lane-on-highway","name":"Merging cars into our lane on highway","cat":"common","weight":5.0,"thresh":9.0,"desc":"This occurs usually on highway when we are in the righmost lane and cars are merging into our lane from on-ramp, FSD should adjust speed to allow the merging car to go in front or behind us","scores":{"10-69-25-2":7.0,"11-3-6":7.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":8.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":12},{"id":"timely-reaction-to-slowing-traffic-on-highway","name":"Timely reaction to slowing traffic on highway","cat":"common","weight":5.0,"thresh":9.0,"desc":"Often highway traffic slows suddenly in the distance (eg from cruising speed of 65 to 15 or even 0). FSD needs to look ahead and start slowing down gradually instead of waiting to slam on breaks last second. Similarly if our lane is empty but adjacent lane has a line of cars that have stopped, we need to reduce our speed to a safe speed (eg 15mph) in case anyone cuts in front of us","scores":{"10-69-25-2":5.0,"11-3-6":7.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":13},{"id":"roundabouts","name":"Roundabouts","cat":"common","weight":5.0,"thresh":8.0,"desc":"FSD should complete a roundabout safely from the lane it was initiated and should yield to any cars that were in the roundabout ahead of it before proceeding","scores":{"10-69-25-2":4.0,"11-3-6":4.0,"11-4-2":4.0,"11-4-4":4.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":8.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":14},{"id":"traffic-cop-hand-signal-navigation","name":"Traffic cop/hand signal navigation","cat":"rare","weight":3.0,"thresh":8.0,"desc":"FSD should recognize the hand signals from traffic police officer and proceed only when allowed with gesture","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":1.0,"12-6-x":1.0,"14-2-x":6.0,"14-3-x":6.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":15},{"id":"stopped-school-bus-surveyed-from-public","name":"Stopped school bus (surveyed from public)","cat":"rare","weight":3.0,"thresh":10.0,"desc":"FSD should stop and wait for school bus that has flashing red lights and/or STOP sign activated","scores":{"10-69-25-2":2.0,"11-3-6":2.0,"11-4-2":2.0,"11-4-4":2.0,"12-2-1":2.0,"12-3-x":2.0,"13-2-x":6.0,"12-6-x":2.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":16},{"id":"navigate-through-construction-zone-coned-lanes","name":"Navigate through construction zone/coned lanes","cat":"rare","weight":5.0,"thresh":9.0,"desc":"FSD should slow down to 10-20MPH in city construction zones and move over promptly if lane has been coned off. Also must navigate smoothly through coned lanes","scores":{"10-69-25-2":3.0,"11-3-6":3.0,"11-4-2":3.0,"11-4-4":3.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":17},{"id":"avoid-debris-hazards-on-road","name":"Avoid debris/hazards on road","cat":"rare","weight":5.0,"thresh":9.0,"desc":"FSD should avoid debris (eg garbage, tree branch, boxes, protruding hazards, etc) by swerving away from them but maintaining lane when possible","scores":{"10-69-25-2":1.0,"11-3-6":3.0,"11-4-2":4.0,"11-4-4":4.0,"12-2-1":4.0,"12-3-x":4.0,"13-2-x":6.0,"12-6-x":4.0,"14-2-x":7.0,"14-3-x":7.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":18},{"id":"understanding-special-road-signs","name":"Understanding special road signs","cat":"rare","weight":3.0,"thresh":8.0,"desc":"FSD should be able to read special/unique or temporary construction road signs","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":1.0,"12-6-x":1.0,"14-2-x":1.0,"14-3-x":1.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":19},{"id":"pull-over-for-emergency-vehicles","name":"Pull over for emergency vehicles","cat":"law","weight":5.0,"thresh":9.0,"desc":"FSD should pull over to the right most lane (or stop) when police car, ambulance, fire truck have active emergency lights and sirens","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":5.0,"12-6-x":1.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":20},{"id":"detect-proper-posted-speed-limits","name":"Detect proper posted speed limits","cat":"law","weight":5.0,"thresh":8.0,"desc":"Proper speed limits should be set based on signs or type of road. Also there should be a prompt transition of speed limit from city to highway road, usually occuring on an on-ramp","scores":{"10-69-25-2":6.0,"11-3-6":6.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":7.0,"14-3-x":7.0},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":21},{"id":"proper-behavior-at-flashing-red-lights","name":"Proper behavior at flashing red lights","cat":"law","weight":5.0,"thresh":10.0,"desc":"FSD should stop at a flashing red (usually a crosswalk or inoperable traffic light) and proceed when safe","scores":{"10-69-25-2":5.0,"11-3-6":5.0,"11-4-2":5.0,"11-4-4":5.0,"12-2-1":2.0,"12-3-x":2.0,"13-2-x":9.0,"12-6-x":2.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":true},"order":22},{"id":"proper-behavior-at-yield-signs","name":"Proper behavior at yield signs","cat":"law","weight":5.0,"thresh":9.0,"desc":"FSD should only stop at yield sign when yielding to other traffic, otherwise if clear should keep moving","scores":{"10-69-25-2":3.0,"11-3-6":3.0,"11-4-2":3.0,"11-4-4":3.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":23},{"id":"keep-clear-lane-traffic-and-railroad-tracks","name":"Keep Clear (lane traffic and railroad tracks)","cat":"law","weight":5.0,"thresh":8.0,"desc":"FSD should obey keep clear road markings and not block traffic in intersections","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":24},{"id":"proper-turn-signaling","name":"Proper turn signaling","cat":"law","weight":2.0,"thresh":8.0,"desc":"FSD needs to signal when making a turn, changing lanes, and merging into highway. It should not signal at any other times (especially not signal opposite of actual intent to confuse other drivers)","scores":{"10-69-25-2":5.0,"11-3-6":7.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":9.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":25},{"id":"proper-lane-planning-selection-for-navigation","name":"Proper lane planning/selection for navigation","cat":"robotaxi","weight":3.0,"thresh":8.0,"desc":"FSD should plan ahead and choose a proper turn lane in advance. (eg If a left turn with two turning lanes is immediately followed by a right turn, it needs to choose the rightmost left turn lane)","scores":{"10-69-25-2":3.0,"11-3-6":5.0,"11-4-2":5.0,"11-4-4":5.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":7.0,"12-6-x":7.0,"14-2-x":7.0,"14-3-x":7.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":26},{"id":"u-turns","name":"U-turns","cat":"robotaxi","weight":5.0,"thresh":8.0,"desc":"FSD should complete u-turns from left-most lane when permitted","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":8.0,"12-6-x":7.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":27},{"id":"reverse","name":"Reverse","cat":"robotaxi","weight":5.0,"thresh":10.0,"desc":"FSD should be able to reverse to get out of a stuck situation or reverse out of a parking spot","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":6.0,"12-6-x":1.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":28},{"id":"navigating-through-parking-lots","name":"Navigating through parking lots","cat":"robotaxi","weight":3.0,"thresh":8.0,"desc":"FSD should be able to navigate through a parking lot to the front of an establishment","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":6.0,"12-3-x":6.0,"13-2-x":7.0,"12-6-x":6.0,"14-2-x":8.0,"14-3-x":8.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":29},{"id":"parking","name":"Parking","cat":"robotaxi","weight":5.0,"thresh":8.0,"desc":"FSD should be able to find a parking spot and park","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":4.0,"12-3-x":4.0,"13-2-x":5.0,"12-6-x":4.0,"14-2-x":7.0,"14-3-x":7.0},"flags":{"robotaxi":false,"disengage":true,"critical":false},"order":30},{"id":"quick-reaction-to-blocked-lanes-ahead","name":"Quick reaction to blocked lanes ahead","cat":"misc","weight":2.0,"thresh":9.0,"desc":"As soon as FSD can see a stopped car or blocked lane in path it should react prompty to change lanes instead of waiting until it's right behind the stopped vehicle to make the move","scores":{"10-69-25-2":3.0,"11-3-6":3.0,"11-4-2":5.0,"11-4-4":6.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":8.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":9.0},"flags":{"robotaxi":false,"disengage":false,"critical":false},"order":31},{"id":"proper-speed-for-traffic-flow-and-auto-speed-con","name":"Proper speed for traffic flow and auto speed control","cat":"misc","weight":3.0,"thresh":9.0,"desc":"FSD should keep safe distance behind lead car and should speed up with flow of traffic (ie not too slow so that large distance develops with lead car)","scores":{"10-69-25-2":6.0,"11-3-6":9.0,"11-4-2":8.0,"11-4-4":8.0,"12-2-1":8.0,"12-3-x":7.0,"13-2-x":9.0,"12-6-x":8.0,"14-2-x":9.0,"14-3-x":8.5},"flags":{"robotaxi":true,"disengage":false,"critical":false},"order":32},{"id":"avoid-potholes","name":"Avoid potholes","cat":"misc","weight":2.0,"thresh":7.0,"desc":"FSD should avoid potholes by swerving away from them but maintaining lane when possible","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":1.0,"12-6-x":1.0,"14-2-x":3.0,"14-3-x":3.0},"flags":{"robotaxi":true,"disengage":true,"critical":false},"order":33},{"id":"avoid-coasting-in-blind-spots","name":"Avoid coasting in blind spots","cat":"misc","weight":1.0,"thresh":8.0,"desc":"FSD should not change lanes directly into the blind spots of another car unless necessary, and should not coast continuosly in the blind spot of another car","scores":{"10-69-25-2":1.0,"11-3-6":1.0,"11-4-2":1.0,"11-4-4":1.0,"12-2-1":1.0,"12-3-x":1.0,"13-2-x":1.0,"12-6-x":1.0,"14-2-x":1.0,"14-3-x":1.0},"flags":{"robotaxi":false,"disengage":false,"critical":false},"order":34},{"id":"intervention-free-drives-pressing-accelerator","name":"Intervention free drives (pressing accelerator)","cat":"general","weight":10.0,"thresh":9.0,"desc":"","scores":{"10-69-25-2":3.0,"11-3-6":3.0,"11-4-2":5.0,"11-4-4":5.0,"12-2-1":7.0,"12-3-x":7.0,"13-2-x":8.0,"12-6-x":7.0,"14-2-x":8.5,"14-3-x":8.5},"flags":{"robotaxi":false,"disengage":false,"critical":false},"order":35},{"id":"general-frequency-of-disengagements","name":"General frequency of disengagements","cat":"general","weight":10.0,"thresh":9.0,"desc":"","scores":{"10-69-25-2":6.0,"11-3-6":6.0,"11-4-2":7.0,"11-4-4":7.0,"12-2-1":8.0,"12-3-x":8.0,"13-2-x":9.0,"12-6-x":8.0,"14-2-x":9.5,"14-3-x":9.5},"flags":{"robotaxi":false,"disengage":false,"critical":false},"order":36}],"events":[{"date":"2024-04-01","who":"EXAMPLE - replace me","kind":"claim","url":"","claim":"Paste a real quote here with the date it was posted. Delete these two examples once you have added your own."},{"date":"2025-06-01","who":"EXAMPLE - replace me","kind":"claim","url":"","claim":"A second example. Set kind to 'claim' for a prediction you want checked against the data, or 'event' for something that actually happened."},{"date":"2024-12-16","who":"Hardware split","kind":"event","url":"","claim":"HW4 cars move to FSD v13. HW3 cars stay on the 12.6 branch - the two hardware generations stop sharing a build here."}],"posts":[],"releases":[{"version":"9.0","date":"2021-07-10","approx":false,"branch":"HW3","note":"First public FSD Beta","public":true},{"version":"9.1","date":"2021-07-31","approx":false,"branch":"HW3","note":"","public":true},{"version":"9.2","date":"2021-08-15","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.0","date":"2021-09-11","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.1","date":"2021-09-27","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.2","date":"2021-10-11","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.3","date":"2021-10-24","approx":false,"branch":"HW3","note":"Pulled and re-released after regressions","public":true},{"version":"10.4","date":"2021-11-06","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.5","date":"2021-11-21","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.6","date":"2021-12-04","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.7","date":"2021-12-19","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.8","date":"2021-12-23","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.9","date":"2022-01-16","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.10","date":"2022-02-01","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.12","date":"2022-05-18","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.13","date":"2022-07-18","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.69","date":"2022-08-21","approx":false,"branch":"HW3","note":"Single-stack city driving","public":true},{"version":"10.69.2","date":"2022-09-11","approx":false,"branch":"HW3","note":"","public":true},{"version":"11","date":"2022-11-12","approx":false,"branch":"HW3","note":"Single stack extended to highway","public":true},{"version":"10.69.25","date":"2022-12-19","approx":false,"branch":"HW3","note":"","public":true},{"version":"10.69.25.2","date":"2023-01-16","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3","date":"2023-02-14","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.1","date":"2023-03-07","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.2","date":"2023-03-19","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.3","date":"2023-03-24","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.4","date":"2023-03-31","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.5","date":"2023-04-01","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.3.6","date":"2023-04-08","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4","date":"2023-04-17","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.1","date":"2023-05-10","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.2","date":"2023-05-26","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.3","date":"2023-06-09","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.4","date":"2023-06-19","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.5","date":"2023-07-08","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.6","date":"2023-07-21","approx":false,"branch":"HW3","note":"","public":true},{"version":"11.4.7","date":"2023-08-24","approx":false,"branch":"HW3","note":"","public":true},{"version":"12","date":"2023-11-24","approx":false,"branch":"both","note":"End-to-end neural net replaces explicit code","public":false},{"version":"12.1","date":"2023-12-24","approx":false,"branch":"both","note":"","public":false},{"version":"12.1.1","date":"2024-01-12","approx":false,"branch":"both","note":"","public":false},{"version":"12.1.2","date":"2024-01-21","approx":false,"branch":"both","note":"","public":true},{"version":"12.2","date":"2024-02-09","approx":false,"branch":"both","note":"","public":true},{"version":"12.2.1","date":"2024-02-18","approx":false,"branch":"both","note":"","public":true},{"version":"12.3","date":"2024-03-12","approx":false,"branch":"both","note":"First branded FSD (Supervised)","public":true},{"version":"12.3.1","date":"2024-03-24","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.2","date":"2024-03-26","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.2.1","date":"2024-03-27","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.3","date":"2024-03-30","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.4","date":"2024-04-10","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.5","date":"2024-04-19","approx":false,"branch":"both","note":"","public":true},{"version":"12.3.6","date":"2024-04-28","approx":false,"branch":"both","note":"","public":true},{"version":"12.5.5","date":"2024-09-30","approx":false,"branch":"HW3","note":"","public":true},{"version":"13.2","date":"2024-11-30","approx":false,"branch":"HW4","note":"HW4 only","public":true},{"version":"12.5.6.4","date":"2024-12-03","approx":false,"branch":"HW3","note":"","public":true},{"version":"13.2.1","date":"2024-12-15","approx":false,"branch":"HW4","note":"","public":true},{"version":"13.2.2","date":"2024-12-21","approx":false,"branch":"HW4","note":"","public":true},{"version":"13.2.2.1","date":"2024-12-23","approx":false,"branch":"HW4","note":"","public":true},{"version":"12.6","date":"2024-12-30","approx":false,"branch":"HW3","note":"HW3 branch - HW4 cars move to 13.x here","public":true},{"version":"12.6.1","date":"2025-01-11","approx":false,"branch":"HW3","note":"","public":true},{"version":"12.6.2","date":"2025-01-22","approx":false,"branch":"HW3","note":"","public":true},{"version":"13.2.6","date":"2025-01-31","approx":false,"branch":"HW4","note":"","public":true},{"version":"12.6.3","date":"2025-02-08","approx":false,"branch":"HW3","note":"","public":true},{"version":"13.2.7","date":"2025-02-08","approx":false,"branch":"HW4","note":"","public":true},{"version":"12.6.4","date":"2025-02-27","approx":false,"branch":"HW3","note":"","public":true},{"version":"13.2.8","date":"2025-02-27","approx":false,"branch":"HW4","note":"","public":true},{"version":"13.2.9","date":"2025-08-28","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1","date":"2025-10-07","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.1","date":"2025-10-12","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.2","date":"2025-10-16","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.3","date":"2025-10-20","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.4","date":"2025-10-25","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.5","date":"2025-11-03","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.1.7","date":"2025-11-12","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.2","date":"2025-11-21","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.2.1","date":"2025-11-27","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.2.2","date":"2025-12-22","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3","date":"2026-04-07","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.1","date":"2026-04-14","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.2","date":"2026-04-22","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.3","date":"2026-05-17","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.4","date":"2026-06-11","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.5","date":"2026-07-13","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.6","date":"2026-07-21","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.7","date":"2026-08-01","approx":false,"branch":"HW4","note":"","public":true},{"version":"14.3.8","date":"2026-08-09","approx":false,"branch":"HW4","note":"Sources disagree: notateslaapp Aug 9 / fsdupdate Aug 25","public":true}],"eras":[{"major":9,"start":"2021-07-10","opens":"9.0","end":"2021-09-11"},{"major":10,"start":"2021-09-11","opens":"10.0","end":"2023-02-14"},{"major":11,"start":"2023-02-14","opens":"11.3","end":"2024-01-21"},{"major":12,"start":"2024-01-21","opens":"12.1.2","end":"2024-11-30"},{"major":13,"start":"2024-11-30","opens":"13.2","end":"2025-10-07"},{"major":14,"start":"2025-10-07","opens":"14.1","end":null}],"pinned":[],"generated":"2026-09-10","build":"011302","sourceRows":36};
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   1 \u00b7 THE KEY \u2014 four colours, discrete. No interpolation anywhere.
+   A score sits in a band and takes that band's colour; 8.5 is green
+   because 8\u20139 is green, not because it is 83% of the way somewhere.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const CSSV = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const KEY = [
+  {lo:1,   hi:1,  sw:'1',   var:'--k-red',    desc:'Never successful'},
+  {lo:2,   hi:4,  sw:'2-4', var:'--k-red',    desc:'Most of the time NOT successful'},
+  {lo:5,   hi:5,  sw:'5',   var:'--k-red',    desc:'50/50 chance it works'},
+  {lo:6,   hi:7,  sw:'6-7', var:'--k-orange', desc:'Works more often than not'},
+  {lo:8,   hi:9,  sw:'8-9', var:'--k-green',  desc:'Most of the time successful'},
+  {lo:10,  hi:10, sw:'10',  var:'--k-blue',   desc:'Perfect'},
+];
+let COL = {};
+function loadColours(){ COL = {red:CSSV('--k-red'), orange:CSSV('--k-orange'),
+                               green:CSSV('--k-green'), blue:CSSV('--k-blue')}; }
+loadColours();
+function scoreColor(v){
+  if (v == null || isNaN(v)) return CSSV('--panel-2');
+  if (v <= 5) return COL.red;
+  if (v <= 7) return COL.orange;
+  if (v <= 9) return COL.green;
+  return COL.blue;
+}
+function relLum(hex){
+  const c = [1,3,5].map(i => parseInt(hex.substr(i,2),16)/255)
+    .map(x => x <= 0.04045 ? x/12.92 : ((x+0.055)/1.055)**2.4);
+  return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
+}
+function inkOn(hex){
+  const L = relLum(hex);
+  return (L + 0.05)/0.05 > 1.05/(L + 0.05) ? '#0a0d13' : '#ffffff';
+}
+/* -------- one switch: white numbers on the red band --------
+   Set to null to go back to the automatic contrast pick. White on this red is
+   3.64:1 against 5.35:1 for dark ink, so it is a look choice, not a legibility
+   one -- both are readable at this size, dark is the safer of the two. */
+const RED_INK = null;   /* white read easier but made the red shout; dark it is */
+function cellInk(col){ return (RED_INK && col === COL.red) ? RED_INK : inkOn(col); }
+function drawSummary(){
+  const vis = shown();
+  let h = '<thead><tr><th class="sum-corner">Weighted score</th>';
+  vis.forEach(v => h += `<th class="sum-h">${esc(vname(v))}<span>${fmtDate(v.t)}</span></th>`);
+  if (state.target) h += '<th class="sum-h tgt">Target<span>from survey</span></th>';
+  h += '</tr></thead><tbody>';
+  C.forEach(c => {
+    h += `<tr><th class="sum-name" scope="row">${esc(c.short)}</th>`;
+    vis.forEach(v => { const sc = catScore(v.id, c.id), col = scoreColor(sc);
+      h += `<td class="sum-cell" style="background:${col};color:${cellInk(col)}">${sc.toFixed(1)}</td>`; });
+    if (state.target) h += `<td class="sum-tgt">${threshOf(f => f.cat === c.id).toFixed(1)}</td>`;
+    h += '</tr>';
+  });
+  h += `</tbody><tfoot><tr class="sum-gap"><td colspan="${vis.length + 1 + (state.target?1:0)}"></td></tr>
+        <tr class="sum-tot"><th class="sum-name" scope="row">Overall</th>`;
+  vis.forEach(v => { const sc = overall(v.id), col = scoreColor(sc);
+    h += `<td class="sum-cell" style="background:${col};color:${cellInk(col)}">${sc.toFixed(1)}</td>`; });
+  h += (state.target ? `<td class="sum-tgt">${T_ALL.toFixed(1)}</td>` : '') + '</tr></tfoot>';
+  $('#tbl-summary').innerHTML = h;
+}
+function keyHTML(withChart){
+  const rows = KEY.map(k => {
+    const c = CSSV(k.var);
+    return `<tr><td class="sw" style="background:${c};color:${cellInk(c)}">${k.sw}</td>
+            <td class="dsc">${k.desc}</td></tr>`;
+  }).join('');
+  const chart = !withChart ? '' : `<div><div class="keytitle">Reading the chart</div>
+    <div class="legend-line">
+      <span><i style="border-top:3px solid ${CSSV('--ink')}"></i>Actual score &mdash; holds flat, steps on release</span>
+      ${state.trend ? `<span><i style="border-top:2px dashed ${CSSV('--ink-4')}"></i>Straight-line trend through every release</span>` : ''}
+      ${state.band ? `<span><i style="border-top:11px solid ${CSSV('--thresh-wash')};box-shadow:inset 0 0 0 1px ${CSSV('--thresh-edge')}"></i>Estimated robotaxi threshold</span>` : ''}
+    </div></div>`;
+  return `<div><div class="keytitle">Survey key</div><table class="key">${rows}</table></div>${chart}`;
+}
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   2 \u00b7 MODEL
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const V = DATA.versions, F = DATA.features, C = DATA.categories;
+/* One line each: a two-line rail needs more vertical room than a five-row
+   category actually has, so it would overflow its own group. */
+const RAIL = {comfort:'COMFORT', common:'COMMON SAFETY', rare:'LESS FREQUENT',
+              law:'FOLLOW THE LAW', robotaxi:'ROBOTAXI', misc:'MISC.'};
+C.forEach(c => c.rail = RAIL[c.id] || c.short.toUpperCase());
+const catById = Object.fromEntries(C.map(c => [c.id, c]));
+/* two criteria belong to no category \u2014 they measure the drive overall */
+const catName = f => (catById[f.cat] || {short:'Overall measure'}).short;
+const GEN = () => F.filter(f => f.cat === 'general').sort((a,b) => a.order - b.order);
+const day = d => Date.UTC(+d.slice(0,4), +d.slice(5,7)-1, +d.slice(8,10));
+V.forEach(v => v.t = day(v.date));
+const fmtDate = t => new Date(t).toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
+/* Exact day. Two releases in the same month are indistinguishable without it. */
+const fmtDay = t => new Date(t).toLocaleDateString('en-US',
+  {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'});
+const fmtShort = t => new Date(t).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'});
+/* The sheet writes some releases with a leading V and some without. Drop it
+   everywhere: in a condensed face the V crowds the digits next to it. */
+const vname = v => v.label.replace(/^[Vv]\s*/, '');
+const SERIES = ['#3987e5','#d95926','#199e70','#c98500','#d55181','#9085e9'];
+C.forEach((c,i) => c.line = SERIES[i]);
+
+const state = {view:'timeline', versions:new Set(V.filter(v=>v.default).map(v=>v.id)),
+               cats:new Set(), pins:false, target:false, here:true, stairs:true, scores:true, trend:true, band:true, eras:true, durs:true, ptrend:false, allRel:false, hw3:false,
+               posts:new Set(), topic:'', q:'', excerpts:{}, offsets:{},
+               /* Always on: the chip is gone and the saved value is no longer read,
+                  so an 'off' stored before this change cannot strand it hidden.
+                  The drawing code stays - flip this in the console to preview
+                  a clean plot. It is a signature, not a security control. */
+               watermark:true, wm:{fx:0.44, fy:0.80}};   /* pins off by default \u2014 a clean plot */
+const shown = () => V.filter(v => state.versions.has(v.id));
+
+function wmean(vid, keep = () => true, pick = (f,v) => f.scores[v]){
+  let n = 0, d = 0;
+  for (const f of F){ if (!keep(f)) continue;
+    const s = pick(f, vid); if (s == null) continue;
+    n += f.weight*s; d += f.weight; }
+  return d ? n/d : null;
+}
+const overall  = vid => wmean(vid);
+const catScore = (vid,cid) => wmean(vid, f => f.cat === cid);
+const threshOf = (keep = () => true) => wmean(null, f => keep(f) && f.thresh != null, f => f.thresh);
+const T_ALL = threshOf();                 // sum of the per-feature targets \u2014 used in the matrix
+const BAND = DATA.band || [8.5, 9.0];     // the guesstimated robotaxi range \u2014 used on the chart
+const T_LOW = BAND[0];
+const latest = V[V.length-1], first = V[0];
+/* The newest column keeps holding until today: a ".x" column covers every build
+   in its series, so the score stepped up when the series began and has not moved
+   since, through however many point builds have shipped. That flat run is
+   observed, not assumed. */
+const NOW = DATA.now ? day(DATA.now.date) : latest.t;
+const NOW_BUILD = (DATA.now && DATA.now.build) || '';
+/* Where HW3 and HW4 stopped sharing builds. Before this every release went to
+   both, so only POST-fork HW3 builds are the branch - dropping every release
+   tagged HW3 would take the whole v10/v11 history with it. */
+const FORK_T = (() => {
+  const f = V.find(v => v.label === DATA.forkAt);
+  return f ? f.t : Infinity;
+})();
+const isHw3Branch = r => r.branch === 'HW3' && r.t > FORK_T;
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, text){
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+}
+const QUOTE_SOURCE = 'Elon quotes on X';
+let PLOT = {x:0, y:0, w:1, h:1};   /* plot box, for placing the watermark */
+/** Fit one line to `maxW`, accounting for letter-spacing that measureText ignores. */
+function fitOneLine(text, font, ls, maxW){
+  MEASURE.font = font;
+  const w = t => MEASURE.measureText(t).width + t.length*ls;
+  if (w(text) <= maxW) return text;
+  let t = text;
+  while (t.length && w(t + '\u2026') > maxW) t = t.slice(0, -1);
+  /* prefer a word boundary over a mid-word cut, if it costs little */
+  const sp = t.lastIndexOf(' ');
+  if (sp > text.length * 0.55) t = t.slice(0, sp);
+  return t.replace(/[\s/]+$/, '') + '\u2026';
+}
+
+/** Wrap in curly quotes so an excerpt reads as a quotation. */
+function quoted(t){
+  t = String(t).trim();
+  return /^[\u201C"]/.test(t) ? t : '\u201C' + t + '\u201D';
+}
+/** Where every ticked quote card goes. Shared by the page and the PNG so the
+    two cannot drift apart; `k` scales the card for the larger canvas. */
+function layoutQuotes(o){
+  const k = o.k || 1;
+  const CW = Math.round(268*k), PAD = Math.round(13*k), LH = Math.round(17*k),
+        BAR = Math.max(3, Math.round(3*k)), GAP = Math.round(68*k);
+  const QF = `400 ${(12.5*k).toFixed(1)}px "IBM Plex Sans", ui-sans-serif, sans-serif`;
+  const out = [], placed = [];
+  if (o.hereBox) placed.push(o.hereBox);
+  POSTS.filter(p => state.posts.has(p.id) && p.t >= o.t0 - o.padL && p.t <= o.t1 + o.padR)
+       .sort((a,b) => a.t - b.t)
+       .forEach(p => {
+    const px = o.X(p.t);
+    const inner = CW - PAD*2 - BAR;
+    const lines = wrapLines(quoted(shownText(p)), QF, inner, 4);
+    /* the header can be long \u2014 "COMING SOON / NEXT VERSION" overran the card */
+    const head = fitOneLine(fmtDay(p.t).toUpperCase() + '   ' + p.topic.toUpperCase(),
+                            `500 ${(10*k).toFixed(1)}px "IBM Plex Mono", monospace`, 0.7*k, inner);
+    const ch = PAD + Math.round(8*k) + Math.round(16*k) + LH*(lines.length-1) + PAD;
+    let sy = o.main.length ? o.main[0].y : o.Y(5);
+    for (const q of o.main) if (q.t <= p.t) sy = q.y;
+    /* Page and card now draw at one fixed size, so this test is deterministic
+       again: flip only when the card genuinely would not fit on the right. */
+    const flip = px + CW > o.W - o.M.r - 4*k;
+    let cx = flip ? px - CW : px;
+    let cy = sy + GAP;
+    placed.forEach(r => {
+      const w = r.w == null ? CW : r.w;
+      if (cx < r.x + w + 14*k && cx + CW + 14*k > r.x &&
+          cy < r.y + r.h + 16*k && cy + ch + 16*k > r.y) cy = r.y + r.h + 18*k;
+    });
+    cy = Math.min(cy, o.H - o.M.b - ch - 6*k);
+    cx = Math.min(Math.max(cx, o.M.l + 2), o.W - o.M.r - CW - 2);
+    const off = state.offsets[p.id] || {dx:0, dy:0};
+    cx += off.dx*k; cy += off.dy*k;
+    placed.push({x:cx, y:cy, h:ch, w:CW});
+    out.push({p, px, sy, cx, cy, CW, ch, lines, head, flip, PAD, LH, BAR, k});
+  });
+  return out;
+}
+const MEASURE = document.createElement('canvas').getContext('2d');
+const MEASURE_W = t => { MEASURE.font = '500 13.75px "IBM Plex Mono", monospace';
+                         return MEASURE.measureText(t).width + t.length*2.2; };
+function textW(t, font){ MEASURE.font = font; return MEASURE.measureText(t).width; }
+/* x offset that centres a label rotated by `deg` over a column of width `cw` */
+function diagOffset(t, font, cw, deg){
+  const spread = textW(t, font) * Math.cos(deg * Math.PI / 180);
+  return cw/2 - spread/2;
+}
+/** break `text` into at most `maxLines` lines that fit `maxW`, ellipsised.
+    Named apart from the canvas wrapText below, which takes a context. */
+function wrapLines(text, font, maxW, maxLines){
+  MEASURE.font = font;
+  const words = String(text).split(/\s+/), lines = [];
+  let line = '', truncated = false;
+  for (let i = 0; i < words.length; i++){
+    const test = line ? line + ' ' + words[i] : words[i];
+    if (MEASURE.measureText(test).width > maxW && line){
+      lines.push(line); line = words[i];
+      if (lines.length === maxLines){ line = ''; truncated = i < words.length - 1; break; }
+    } else line = test;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  else if (line) truncated = true;
+  if (truncated && lines.length){
+    let last = lines[lines.length-1];
+    while (last.length && MEASURE.measureText(last + '\u2026').width > maxW) last = last.slice(0, -1);
+    lines[lines.length-1] = last.replace(/[\s,;:.]+$/, '') + '\u2026';
+  }
+  return lines;
+}
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sign = n => (n > 0 ? '+' : n < 0 ? '-' : '\u00b1') + Math.abs(n).toFixed(1);
+const tip = $('#tip');
+function showTip(ev, html){
+  tip.innerHTML = html; tip.classList.add('on');
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 16, y = ev.clientY - 12;
+  if (x + r.width > innerWidth - 12) x = ev.clientX - r.width - 16;
+  if (y + r.height > innerHeight - 12) y = innerHeight - r.height - 12;
+  tip.style.left = Math.max(8,x)+'px'; tip.style.top = Math.max(8,y)+'px';
+}
+const hideTip = () => tip.classList.remove('on');
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   3 \u00b7 TIMELINE \u2014 a staircase, not a slope.
+   The score does not drift upward between releases; it sits still and
+   jumps when a build lands. Drawing it as a sloped line invents motion
+   that never happened. The dashed straight fit stays because the whole
+   point is watching the real line fall away from it.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+/* Trend model: an exponential approach to a ceiling of 10.
+      score(t) = 10 - (10 - s0)\u00b7e^(-k\u00b7t)
+   Fitted by regressing ln(10 - score) on time. This is the right shape for a
+   capability score that cannot exceed 10 \u2014 it decelerates as it climbs but never
+   stops climbing and never exceeds the ceiling. A polynomial fit does neither:
+   run one through a recent plateau and it flattens or turns down, which asserts
+   that improvement has ended. That is the fit talking, not the data. */
+const CEIL = 10;
+/* Majors to refit the trend at, newest first, excluding the current one.
+   Derived rather than hard-coded so this keeps working when v15 ships. */
+const majorOf = p => parseInt(p.v.label, 10) || 0;
+/* The legacy trend: an ordinary straight line through the points, which is
+   what a spreadsheet draws and what this survey originally used. It has no
+   ceiling, so it keeps climbing at the rate it started at and runs off the top
+   of the chart - which is exactly the point of showing it. */
+function fitLine(pts){
+  const n = pts.length; if (n < 2) return null;
+  const t0 = pts[0].t, YR = 3.15576e10;
+  const T = pts.map(p => (p.t - t0)/YR), S = pts.map(p => p.s);
+  const mt = T.reduce((a,b)=>a+b,0)/n, ms = S.reduce((a,b)=>a+b,0)/n;
+  let num = 0, den = 0;
+  T.forEach((t,i) => { num += (t-mt)*(S[i]-ms); den += (t-mt)**2; });
+  if (!den) return null;
+  const b = num/den, a = ms - b*mt;
+  return {at: t => a + b*(t - t0)/YR,
+          reaches: sc => t0 + ((sc - a)/b)*YR};
+}
+function priorCutoffs(pts, howMany){
+  const majs = [...new Set(pts.map(majorOf))].sort((a,b) => b - a);
+  return majs.slice(1, 1 + (howMany || 2));
+}
+function fit(pts){
+  const n = pts.length; if (n < 3) return null;
+  const t0 = pts[0].t, YR = 3.15576e10;                 // ms per year
+  const T = pts.map(p => (p.t - t0)/YR);
+  const Yl = pts.map(p => Math.log(Math.max(0.05, CEIL - p.s)));
+  const mt = T.reduce((a,b) => a+b, 0)/n, my = Yl.reduce((a,b) => a+b, 0)/n;
+  let num = 0, den = 0;
+  T.forEach((t,i) => { num += (t-mt)*(Yl[i]-my); den += (t-mt)**2; });
+  if (!den || !(num < 0)) return null;                  // no improvement to model
+  const b = num/den, a = my - b*mt;
+  return {t0, at: t => CEIL - Math.exp(a + b*(t - t0)/YR),
+          /* when the curve reaches a given score */
+          reaches: sc => t0 + ((Math.log(CEIL - sc) - a)/b)*YR};
+}
+/* Renders into the page's <svg> by default, or into any detached <svg> at an
+   explicit size. The PNG uses the second form, so the card is the same drawing
+   code rather than a second implementation that drifts. */
+/* Height the summary block needs below the plot, at page scale. */
+let _mcx = null;
+function monoW(txt, px, ls){         /* the break in the rule has to fit the number */
+  if (!_mcx) _mcx = document.createElement('canvas').getContext('2d');
+  _mcx.font = `500 ${px}px "IBM Plex Mono",monospace`;
+  return _mcx.measureText(txt).width + (ls || 0)*txt.length;
+}
+/* Months an era ran. Eras that open before the chart does are left unmeasured:
+   V10 really ran 17 months but only its last two are on screen, and a
+   two-month-wide rule labelled "17 mo" next to a twelve-month-wide one
+   labelled "12 mo" compares lengths that do not mean the same thing. */
+function eraMonths(e, t0){
+  if (e.t0 < t0) return null;
+  const end = e.t1 == null ? NOW : e.t1;
+  return {n: ((end - e.t0)/(864e5*30.44)).toFixed(1), open: e.t1 == null};
+}
+const CHART_W = 1200;
+function drawTimeline(opt){
+  opt = opt || {};
+  const toPage = !opt.svg;
+  const svg = opt.svg || $('#svg-timeline');
+  svg.textContent = '';
+  /* ONE fixed drawing size for everybody. The page scales it to fit its
+     container with width:100%, the PNG scales it up to card size. Measuring
+     the container instead meant the page and the card drew at different
+     widths, so anything sized in px - the quote cards, the type - covered a
+     different fraction of the chart in each. Same numbers now, everywhere. */
+  const W = opt.W || CHART_W;
+  let H = opt.H || Math.round(CHART_W*0.47);
+  const chartH = H;                       /* plot area; summary sits below it */
+  /* The version strip ADDS height. Growing H and M.t by the same amount
+     inserts a band at the top and leaves (H - M.t - M.b) - the plot itself -
+     exactly the size it was. Nothing gets squeezed to make room. */
+  const ERA_H = state.eras && ERAS.length ? 52 : 0;
+  const DUR_H = state.durs && ERAS.length ? 40 : 0;
+  const TOP_H = ERA_H + DUR_H;
+  const vis = shown().filter(v => state.hw3 || v.track !== 'hw3');
+
+  /* The summary is drawn at its natural size into a group and then scaled as
+     ONE object to span the plot's width - a single transform, so type, cells
+     and gaps all grow by the same factor and nothing can end up stretched.
+     The band it needs is measured rather than fixed, and it only ever changes
+     the card's height: (H - M.t - M.b) cancels SUM_H out, so the plot above is
+     the same size whatever the summary does. */
+  const SM = vis.length ? summaryMetrics(vis) : null;
+  const SUM_K = SM ? (W - 46 - 2)/SM.w : 1;
+  const SUM_TOP = chartH + TOP_H + 24 + (SM ? SM.top : 0);   /* where it began before */
+  const SUM_TY = SUM_TOP - (SM ? SM.top*SUM_K : 0);
+  const SUM_H = SM ? Math.round(SUM_TY + SM.bottom*SUM_K + 30 - chartH - TOP_H) : 272;
+
+  H = chartH + SUM_H + TOP_H;
+  const M = {t:38 + TOP_H, r:2, b:66 + SUM_H, l:46};   /* fixed: break-outs overlay, never resize */
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.removeAttribute('width'); svg.removeAttribute('height');
+  if (!vis.length){ svg.append(el('text',{x:W/2,y:H/2,'text-anchor':'middle',class:'axis-t'},'Select a release.')); return; }
+
+  const t0 = Math.min(...vis.map(v=>v.t));
+  const t1 = Math.max(Math.max(...vis.map(v=>v.t)), NOW);
+  const padL = Math.max((t1-t0)*.025, 864e5*18), padR = Math.max((t1-t0)*.14, 864e5*100);
+  const X = t => M.l + (t - t0 + padL)/(t1 - t0 + padL + padR)*(W - M.l - M.r);
+  const Y = s => M.t + (10 - s)/9*(H - M.t - M.b);
+  const g = el('g'); svg.append(g);
+
+  /* ---- major-version pills ---- */
+  /* One per major version, spanning the stretch of the timeline it owned.
+     They live in the strip the chart grew for them, so they never overlap
+     the plot, the quote cards or the release labels. */
+  if (DUR_H){
+    /* How long each major version ran, as a dimension: a hairline broken to
+       hold the number, with a short tick down at each boundary. */
+    const RY = M.t - TOP_H + 20, TK = 9, RGT = W - M.r;
+    ERAS.forEach(e => {
+      const m = eraMonths(e, t0);
+      if (!m) return;
+      /* Inset both ends: butted together, two neighbouring rules read as one
+         continuous line and the boundary between versions disappears. */
+      const a = Math.max(M.l, X(e.t0)) + 3;
+      const b = Math.min(RGT, X(e.t1 == null ? NOW : e.t1)) - 3;
+      if (b - a < 30) return;
+      const rule = c => g.append(el('line',{x1:c[0], y1:RY, x2:c[1], y2:RY,
+                                            stroke:'var(--rule-2)', 'stroke-width':1}));
+      [a, b].forEach(c => g.append(el('line',{x1:c, y1:RY, x2:c, y2:RY + TK,
+                                              stroke:'var(--rule-2)', 'stroke-width':1})));
+      const lab = m.n + ' mo' + (m.open ? ' +' : '');
+      const lw = monoW(lab, 14.5, 0.87), mid = (a + b)/2, half = lw/2 + 11;
+      if (b - a > lw + 40){
+        rule([a, mid - half]); rule([mid + half, b]);
+        g.append(el('text',{x:mid, y:RY + 4.2, 'text-anchor':'middle', class:'dur-t'}, lab));
+      } else rule([a, b]);
+    });
+  }
+
+  if (ERA_H){
+    const PY = M.t - ERA_H + 6, PH = 32, RGT = W - M.r;
+    ERAS.forEach(e => {
+      const a = Math.max(M.l, X(e.t0));
+      const b = Math.min(RGT, X(e.t1 == null ? NOW : e.t1));
+      if (b - a < 8) return;                 /* era predates the chart window */
+      g.append(el('rect',{x:a + 2, y:PY, width:b - a - 4, height:PH, rx:PH/2,
+                          fill:'var(--raised)'}));
+      const lab = 'V' + e.major;
+      if (b - a > monoW(lab, 16, 2.24) + 6)       /* else the pill is too narrow */
+        g.append(el('text',{x:(a + b)/2, y:PY + PH/2 + 5.6, 'text-anchor':'middle',
+                            class:'era-t'}, lab));
+    });
+  }
+
+  /* threshold band */
+  if (state.band){
+    g.append(el('rect',{x:M.l, y:Y(BAND[1]), width:W-M.l-M.r, height:Y(BAND[0])-Y(BAND[1]),
+                        fill:'var(--thresh-wash)'}));
+    [BAND[0], BAND[1]].forEach(b => g.append(el('line',{x1:M.l, x2:W-M.r, y1:Y(b), y2:Y(b),
+                        stroke:'var(--thresh-edge)', 'stroke-width':1.5})));
+    /* Above the band, not inside it. The band is 0.5 score units tall - about
+       26px - so a label living inside it can never be bigger than ~13px, which
+       is the whole reason it was unreadable. Outside, the only ceiling is the
+       gap up to the 10 line. */
+    g.append(el('text',{x:M.l+12, y:Y(BAND[1]) - 8, class:'band-t'},
+              'GUESTIMATED UNSUPERVISED ROBOTAXI THRESHOLD RANGE  '
+              + BAND[0].toFixed(1) + ' - ' + BAND[1].toFixed(1)));
+  }
+
+
+  /* y grid */
+  for (let s = 1; s <= 10; s++){
+    g.append(el('line',{x1:M.l, x2:W-M.r, y1:Y(s), y2:Y(s), class:'gridline'}));
+    g.append(el('text',{x:M.l-11, y:Y(s)+4, class:'axis-t','text-anchor':'end'}, s));
+  }
+  /* a plain date axis \u2014 half-year ticks, horizontal, nothing to decipher */
+  const yA = new Date(t0).getUTCFullYear(), yB = new Date(t1 + padR).getUTCFullYear();
+  for (let yr = yA; yr <= yB + 1; yr++) for (const mo of [0, 6]){
+    const t = Date.UTC(yr, mo, 1); if (t < t0 - padL || t > t1 + padR) continue;
+    const jan = mo === 0;
+    g.append(el('line',{x1:X(t), x2:X(t), y1:M.t, y2:H-M.b, class:'gridline',
+                        opacity: jan ? 1 : .5}));
+    g.append(el('text',{x:X(t), y:H-M.b+31, class:'date-t','text-anchor':'middle',
+                        style: jan ? 'fill:var(--ink);font-weight:600' : 'fill:var(--ink-2);font-size:14.5px'},
+              new Date(t).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})));
+  }
+
+  const P = v => ({v, t:v.t, s:overall(v.id), x:X(v.t), y:Y(overall(v.id))});
+  const trunk = vis.filter(v => v.track === 'shared').map(P);
+  const br = tr => { const b = vis.filter(v => v.track === tr).map(P);
+                     return b.length && trunk.length ? [trunk[trunk.length-1], ...b] : b; };
+  const hw4 = br('hw4'), hw3 = br('hw3');
+  const main = [...trunk, ...hw4.slice(1)];
+
+  /* ---- the trend line, drawn first so the staircase sits on top ---- */
+  const clampS = sc => Math.min(10, Math.max(1, sc));
+  const tA = main.length ? main[0].t : t0;
+  const tB = t1 + padR;                     /* run off the edge: it keeps going */
+  const curveD = fn => {
+    let d = '';
+    for (let i = 0; i <= 90; i++){
+      const t = tA + (tB - tA)*i/90;
+      d += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(clampS(fn.at(t))).toFixed(1) + ' ';
+    }
+    return d;
+  };
+  /* What the trend looked like BEFORE the newest majors shipped: the same fit,
+     on the same points, with the later releases withheld. Drawn under the
+     current line so the comparison reads as then-versus-now. */
+  if (state.ptrend && main.length){
+    priorCutoffs(main, 1).forEach(cut => {
+      const lf = fitLine(main.filter(p => majorOf(p) <= cut));
+      if (!lf) return;
+      /* Stop where it leaves the plot rather than clamping to 10 - a clamped
+         straight line flattens along the top edge and stops looking straight,
+         which is the one thing this line is here to be. */
+      const tTop = lf.at(tB) > 10 ? lf.reaches(10) : tB;
+      const x1 = X(tA), y1 = Y(Math.min(10, lf.at(tA)));
+      const x2 = X(tTop), y2 = Y(Math.min(10, lf.at(tTop)));
+      g.append(el('line',{x1, y1, x2, y2, stroke:'var(--ptrend)',
+                          'stroke-width':1.6, 'stroke-dasharray':'5 6', opacity:.72}));
+      const atEdge = tTop >= tB - 1;
+      g.append(el('text',{x: atEdge ? x2 - 6 : x2 + 8,
+                          y: atEdge ? y2 - 6 : y2 + 14,
+                          'text-anchor': atEdge ? 'end' : 'start',
+                          class:'ptrend-t', opacity:.9}, 'legacy trend \u00b7 thru v' + cut));
+    });
+  }
+  const f = state.trend ? fit(main) : null;
+  if (f)
+    g.append(el('path',{d:curveD(f), fill:'none', stroke:'var(--trend)', 'stroke-width':2,
+                        'stroke-dasharray':'6 6', opacity:.72}));
+  /* ---- the staircase ---- */
+  const stair = p => { if (p.length < 2) return '';
+    let d = `M${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
+    for (let i = 1; i < p.length; i++) d += ` L${p[i].x.toFixed(1)} ${p[i-1].y.toFixed(1)} L${p[i].x.toFixed(1)} ${p[i].y.toFixed(1)}`;
+    return d; };
+  /* Solid only through releases that were actually surveyed. Past the last
+     point the score is an assumption, not an observation, so that stretch is
+     dashed. */
+  if (state.stairs && hw3.length > 1)
+    g.append(el('path',{d:stair(hw3), fill:'none', stroke:'var(--hw3)',
+                        'stroke-width':2, 'stroke-dasharray':'6 5'}));
+  if (state.stairs && main.length > 1)
+    g.append(el('path',{d:stair(main), fill:'none', stroke:'var(--ink)',
+                        'stroke-width':3, 'stroke-linejoin':'miter'}));
+  if (state.stairs) [[hw3,'var(--hw3)',2],[main,'var(--ink)',3]].forEach(([p,col,wd]) => {
+    if (!p.length) return;
+    const e = p[p.length-1];
+    /* solid to today: the score is known to have held through every point
+       build since. Dotted only past today, where nothing is known yet. */
+    if (X(NOW) > e.x + 1)
+      g.append(el('line',{x1:e.x, y1:e.y, x2:X(NOW), y2:e.y, stroke:col,
+                          'stroke-width':wd, 'stroke-linecap':'butt'}));
+    g.append(el('line',{x1:Math.max(e.x, X(NOW)), y1:e.y, x2:W-M.r, y2:e.y, stroke:col,
+                        'stroke-width':wd, 'stroke-dasharray':'2 7',
+                        'stroke-linecap':'round', opacity:.75}));
+  });
+
+  /* ---- releases: one dot each, score above, angled label below ---- */
+  /* Every public release, placed on the line of its OWN major version - not
+     whatever score happened to be in force that week. A version 14 build sits
+     on the version 14 line even if it shipped while 13.x was the last thing
+     scored. Within a major, the score at or before the build's date wins, so
+     switching on another column for that major splits it into two lines. */
+  if (state.allRel && (main.length || hw3.length)){
+    const majorOf = v => String(v).replace(/^[Vv]/, '').split('.')[0];
+    const byMajor = {};
+    [...main, ...hw3].forEach(q => {
+      const m = majorOf(q.v.label);
+      (byMajor[m] = byMajor[m] || []).push(q);
+    });
+    Object.values(byMajor).forEach(a => a.sort((x, y) => x.t - y.t));
+    RELEASES.forEach(r => {
+      if (r.t < t0 - padL || r.t > NOW) return;
+      if (r.public === false) return;      /* never reached customers - see the Releases tab */
+      if (!state.hw3 && isHw3Branch(r)) return;
+      const cand = byMajor[majorOf(r.version)];
+      if (!cand || !cand.length) return;             /* that major is not shown */
+      const prior = cand.filter(q => q.t <= r.t);
+      const at = prior.length ? prior[prior.length-1] : cand[0];
+      g.append(el('circle',{cx:X(r.t), cy:at.y, r:2.5,
+                            fill: isHw3Branch(r) ? 'var(--hw3)' : 'var(--k-orange)',
+                            stroke:'var(--ground)', 'stroke-width':1}));
+      const hit = el('circle',{cx:X(r.t), cy:at.y, r:9, class:'pt-hit'});
+      hit.addEventListener('mousemove', ev => showTip(ev,
+        `<div class="t-h">${esc(r.version)}</div>
+         <div class="t-m">${fmtDay(r.t)}${r.branch ? ' \u00b7 ' + esc(r.branch) : ''}</div>
+         <div class="t-b">Not scored on its own. Sitting on the
+         ${esc(at.v.label)} line at ${at.s.toFixed(1)}.</div>`));
+      hit.addEventListener('mouseleave', hideTip);
+      g.append(hit);
+    });
+  }
+
+  if (state.scores) [...main, ...hw3.slice(1)].forEach(p => {
+    const isHw3 = p.v.track === 'hw3';
+    g.append(el('circle',{cx:p.x, cy:p.y, r:6,
+                          fill: isHw3 ? 'var(--hw3)' : 'var(--ink)',
+                          stroke:'var(--ground)','stroke-width':2.5}));
+    g.append(el('text',{x:p.x, y:p.y-15, class:'vscore','text-anchor':'middle',
+                        fill:isHw3?'var(--hw3)':'var(--ink)'}, p.s.toFixed(1)));
+    const hit = el('circle',{cx:p.x, cy:p.y, r:18, class:'pt-hit'});
+    const idx = V.indexOf(p.v), prev = V.slice(0,idx).reverse().find(q => q.track !== 'hw3' && overall(q.id) != null);
+    hit.addEventListener('mousemove', ev => showTip(ev,
+      `<div class="t-h">${esc(vname(p.v))}</div>
+       <div class="t-m">${fmtDate(p.t)} \u00b7 ${p.v.track === 'shared' ? 'HW3 + HW4' : p.v.track.toUpperCase()}</div>
+       <div class="t-r"><span>score<br><b>${p.s.toFixed(2)}</b></span>
+       ${prev?`<span>vs ${esc(vname(prev))}<br><b>${sign(p.s-overall(prev.id))}</b></span>`:''}
+       <span>to band<br><b>${sign(T_LOW-p.s)}</b></span></div>`));
+    hit.addEventListener('mouseleave', hideTip);
+    g.append(hit);
+
+  });
+  if (hw3.length > 1){
+    const e = hw3[hw3.length-1];
+    g.append(el('text',{x:e.x+13, y:e.y+5, class:'serieslab', fill:'var(--hw3)'}, 'HW3 \u00b7 12.6 branch'));
+  }
+
+  /* Reserve the "we are here" label so quote cards lay out around it. */
+  const lastRel = main[main.length-1];
+  const hereRef = state.here && lastRel
+    ? {x: X(NOW), y: lastRel.y, v: lastRel.v, s: lastRel.s} : null;
+  const hereOff = state.offsets['__here__'] || {dx:0, dy:0};
+  let hereBox = null;
+  if (hereRef){
+    const r = hereRef.x - 150 < M.l;
+    hereBox = {x: hereRef.x + (r ? 0 : -140) + hereOff.dx,
+               y: hereRef.y + 44 + hereOff.dy, w: 150, h: 34};
+  }
+
+  /* ---- ticked posts ------------------------------------------------
+     The stem starts at the dot on the score line and runs DOWN only; the
+     card hangs off the bottom of it with its accent bar on that same
+     vertical, so quote and line never cross the data. ------------------ */
+  let shownQuotes = 0;
+  if (state.pins) layoutQuotes({X, Y, W, H, M, main, t0, t1, padL, padR, hereBox}).forEach(c => {
+    const anchorX = c.flip ? c.cx + c.CW - c.BAR/2 : c.cx + c.BAR/2;
+    g.append(el('line',{x1:c.px, y1:c.sy + 6, x2:anchorX, y2:c.cy, class:'pin-stem'}));
+    g.append(el('circle',{cx:c.px, cy:c.sy, r:4.5, fill:'var(--accent)',
+                          stroke:'var(--ground)','stroke-width':2}));
+    const card = el('g',{class:'qcard', 'data-card':c.p.id});
+    card.append(el('rect',{x:c.cx, y:c.cy, width:c.CW, height:c.ch, rx:7,
+                           fill:'var(--raised)', stroke:'var(--rule-2)', 'stroke-width':1}));
+    card.append(el('rect',{x: c.flip ? c.cx + c.CW - c.BAR : c.cx, y:c.cy, width:c.BAR,
+                           height:c.ch, rx:1.5, fill:'var(--accent)'}));
+    const tx = c.cx + c.PAD + (c.flip ? 0 : c.BAR);
+    card.append(el('text',{x:tx, y:c.cy+c.PAD+8,
+        style:'font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;fill:var(--accent)'},
+        c.head));
+    c.lines.forEach((ln,i) => card.append(el('text',{x:tx, y:c.cy+c.PAD+8+16+c.LH*i,
+        style:'font-family:var(--f-body);font-size:12.5px;fill:var(--ink)'}, ln)));
+    card.append(el('title',{}, 'Drag to reposition'));
+    g.append(card);
+    shownQuotes++;
+  });
+
+  /* Watermark. Position is a fraction of the plot box, so wherever it is put
+     here it lands in the same relative place on the PNG. */
+  if (toPage) PLOT = {x:M.l, y:M.t, w:W - M.l - M.r, h:H - M.t - M.b};
+  const plotBox = {x:M.l, y:M.t, w:W - M.l - M.r, h:H - M.t - M.b};
+  if (state.watermark){
+    const wx = plotBox.x + state.wm.fx*plotBox.w, wy = plotBox.y + state.wm.fy*plotBox.h;
+    const wm = el('g',{class:'qcard', 'data-card':'__wm__'});
+    wm.append(el('text',{x:wx, y:wy, style:'font-family:var(--f-script);font-size:38px;'
+                 + 'fill:#ffffff;opacity:.07;pointer-events:none'}, '@EdgeCase411'));
+    wm.append(el('rect',{x:wx - 5, y:wy - 27, width:175, height:36, fill:'transparent'}));
+    wm.append(el('title',{}, 'Drag to reposition the watermark'));
+    g.append(wm);
+  }
+
+  /* Source line for the quote cards. Sits in the empty bottom-right of the
+     plot and only appears when at least one quote is actually on the chart. */
+  if (state.pins && shownQuotes){
+    const ly = H - M.b - 12, lx = W - 34;   /* keep clear of the bled edge */
+    g.append(el('text',{x:lx, y:ly, 'text-anchor':'end',
+      style:'font-family:var(--f-mono);font-size:13.75px;letter-spacing:.16em;fill:var(--accent);opacity:.85'},
+      QUOTE_SOURCE.toUpperCase()));
+    g.append(el('rect',{x:lx - MEASURE_W(QUOTE_SOURCE.toUpperCase()) - 19, y:ly - 10,
+                        width:9, height:9, rx:2, fill:'var(--accent)', opacity:.85}));
+  }
+
+  /* "we are here" always attaches to the newest release, so it follows along
+     on its own every time a column is added */
+  const here = hereRef;
+  if (here){
+    const defs = el('defs'); svg.append(defs);
+    const mk = el('marker',{id:'ah', markerWidth:9, markerHeight:9, refX:7, refY:3,
+                            orient:'auto', markerUnits:'strokeWidth'});
+    mk.append(el('path',{d:'M0 0 L7 3 L0 6 z', fill:'var(--ink-2)'}));
+    defs.append(mk);
+    /* red dot marks today at the level the score has been holding */
+    g.append(el('circle',{cx:here.x, cy:here.y, r:7, fill:'var(--k-red)',
+                          stroke:'var(--ground)','stroke-width':2.5}));
+    const right = here.x - 150 < M.l;
+    const lx = here.x + (right ? 52 : -52) + hereOff.dx;
+    const ly = here.y + 62 + hereOff.dy;
+    /* arrow starts beside the label and always ends just short of the dot,
+       so it keeps pointing at it wherever the label is dragged */
+    const sx = lx + (right ? -8 : 8), syA = ly - 13;
+    const a = Math.atan2(here.y - syA, here.x - sx);
+    const grp = el('g',{class:'qcard', 'data-card':'__here__'});
+    grp.append(el('line',{x1:sx, y1:syA,
+                          x2:here.x - Math.cos(a)*13, y2:here.y - Math.sin(a)*13,
+                          stroke:'var(--ink-2)', 'stroke-width':1.5, 'marker-end':'url(#ah)'}));
+    grp.append(el('text',{x:lx, y:ly, class:'serieslab', fill:'var(--ink)',
+                          'text-anchor': right ? 'start' : 'end',
+                          style:'letter-spacing:.14em;font-weight:600'}, 'WE ARE HERE'));
+    grp.append(el('text',{x:lx, y:ly + 16, class:'serieslab', fill:'var(--ink-3)',
+                          'text-anchor': right ? 'start' : 'end'},
+                  (NOW_BUILD ? NOW_BUILD + '  ' : '') + fmtDay(NOW)));
+    grp.append(el('title',{}, 'Drag to reposition'));
+    g.append(grp);
+  }
+  /* category break-outs stay opt-in; they are the only place extra hues appear */
+  [...state.cats].forEach((cid, ci) => {
+    const c = catById[cid];
+    const pts = vis.filter(v => v.track !== 'hw3').map(v => ({x:X(v.t), y:Y(catScore(v.id,cid))}));
+    if (pts.length > 1){
+      let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) d += ` L${pts[i].x.toFixed(1)} ${pts[i-1].y.toFixed(1)} L${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
+      /* carry the level on to today, the same as the overall staircase does -
+         the category has been holding there since its last surveyed release */
+      const endY = pts[pts.length-1].y;
+      if (X(NOW) > pts[pts.length-1].x + 1) d += ` L${X(NOW).toFixed(1)} ${endY.toFixed(1)}`;
+      g.append(el('path',{d, fill:'none', stroke:c.line, 'stroke-width':1.8, opacity:.95}));
+      g.append(el('line',{x1:X(NOW), y1:endY, x2:W - M.r, y2:endY, stroke:c.line,
+                          'stroke-width':1.8, 'stroke-dasharray':'2 7',
+                          'stroke-linecap':'round', opacity:.75}));
+      /* Label rides the middle of its own line rather than the end, so a
+         break-out never needs room reserved beside the plot. */
+      /* stagger along the line by index so two break-outs never stack */
+      const n = state.cats.size;
+      const at = Math.max(1, Math.min(pts.length - 1,
+                 Math.round((pts.length - 1) * (0.35 + 0.45*(n > 1 ? ci/(n-1) : 0)))));
+      /* the run between two points is FLAT at the earlier point's height -
+         using the later one floated the label off its own line */
+      const mid = pts[at], prev = pts[at-1];
+      g.append(el('text',{x:(mid.x + prev.x)/2, y:prev.y - 7, 'text-anchor':'middle',
+                          class:'serieslab', fill:c.line,
+                          style:'paint-order:stroke;stroke:var(--ground);stroke-width:4px'},
+                c.short));
+    }
+  });
+
+  const sg = el('g');
+  sg.setAttribute('transform', `translate(${M.l} ${SUM_TY.toFixed(2)}) scale(${SUM_K.toFixed(4)})`);
+  g.append(sg);
+  drawSummaryInto(sg, 0, 0, vis, SM.w);
+}
+
+/* The category roll-up, drawn as SVG inside the same chart. It used to be an
+   HTML table on the page and a separate canvas routine for the card, which is
+   why the two never matched: the card stretched the cells to fill its width
+   while the page kept them compact. One routine now serves both. */
+/* The natural, unscaled size of the summary block, in the same units
+   drawSummaryInto draws in. Origin is the WEIGHTED SCORE baseline: the version
+   headers sit above it, so `top` is negative. */
+function summaryMetrics(vis){
+  const nc = vis.length + (state.target ? 1 : 0);
+  const RH = 26, GAP = 2, CW = 62;
+  MEASURE.font = '600 15px "Barlow Condensed", Impact, sans-serif';
+  const LBL = Math.ceil(Math.max(...C.map(c => MEASURE.measureText(c.short.toUpperCase()).width
+                                              + c.short.length*1.05))) + 26;
+  const bottom = 12 + C.length*(RH + GAP) + 8 + 10 + RH;
+  const top = -24;
+  return {w: LBL + (nc - 1)*(CW + GAP) + CW, top, bottom, h: bottom - top};
+}
+
+function drawSummaryInto(g, X0, Y0, vis, WIDTH){
+  const nc = vis.length + (state.target ? 1 : 0);
+  const RH = 26, GAP = 2;
+  /* size the label column to the longest label; a fixed width clipped
+     "LESS FREQUENT SAFETY-CRITICAL" into the first cell */
+  const LF = '600 15px "Barlow Condensed", Impact, sans-serif';
+  MEASURE.font = LF;
+  const LBL = Math.ceil(Math.max(...C.map(c => MEASURE.measureText(c.short.toUpperCase()).width
+                                              + c.short.length*1.05))) + 26;
+  const CW = 62;
+  const cx = i => X0 + LBL + i*(CW + GAP);
+  vis.forEach((v, i) => {
+    g.append(el('text',{x:cx(i) + CW/2, y:Y0 - 12, 'text-anchor':'middle',
+      style:'font-family:var(--f-body);font-size:13.5px;font-weight:500;fill:#fff'}, vname(v)));
+    g.append(el('text',{x:cx(i) + CW/2, y:Y0 + 1, 'text-anchor':'middle',
+      style:'font-family:var(--f-mono);font-size:10.5px;fill:var(--ink-2)'}, fmtDate(v.t)));
+  });
+  if (state.target)
+    g.append(el('text',{x:cx(vis.length) + CW/2, y:Y0 - 12, 'text-anchor':'middle',
+      style:'font-family:var(--f-body);font-size:13.5px;font-weight:500;fill:var(--thresh)'}, 'Target'));
+  g.append(el('text',{x:X0, y:Y0 + 1,
+    style:'font-family:var(--f-mono);font-size:10.5px;letter-spacing:.15em;fill:var(--ink-3)'},
+    'WEIGHTED SCORE'));
+
+  let y = Y0 + 12;
+  const row = (label, get, tgt, big) => {
+    g.append(el('text',{x:X0, y:y + RH*0.7,
+      style:`font-family:var(--f-display);font-size:${big?16:15}px;font-weight:${big?700:600};`
+        + `letter-spacing:.07em;text-transform:uppercase;fill:${big?'#fff':'var(--ink-2)'}`}, label));
+    vis.forEach((v, i) => {
+      const sc = get(v.id), col = scoreColor(sc);
+      g.append(el('rect',{x:cx(i), y, width:CW, height:RH, fill:col}));
+      g.append(el('text',{x:cx(i) + CW/2, y:y + RH*0.7, 'text-anchor':'middle',
+        style:`font-family:var(--f-mono);font-size:${big?17:15}px;font-weight:${big?700:600};`
+          + `fill:${cellInk(col)}`}, sc.toFixed(1)));
+    });
+    if (state.target){
+      g.append(el('rect',{x:cx(vis.length), y, width:CW, height:RH, fill:'var(--panel-2)'}));
+      g.append(el('text',{x:cx(vis.length) + CW/2, y:y + RH*0.7, 'text-anchor':'middle',
+        style:`font-family:var(--f-mono);font-size:${big?17:15}px;font-weight:${big?700:600};`
+          + 'fill:var(--thresh)'}, tgt.toFixed(1)));
+    }
+    y += RH + GAP;
+  };
+  C.forEach(c => row(c.short, vid => catScore(vid, c.id), threshOf(f => f.cat === c.id), false));
+  y += 8;
+  g.append(el('line',{x1:X0, x2:cx(nc-1) + CW, y1:y, y2:y, stroke:'var(--ink-2)','stroke-width':2}));
+  y += 10;
+  row('Overall', overall, T_ALL, true);
+}
+</script>
+
+<script>
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   4 \u00b7 MATRIX \u2014 compact. A cell is as wide as the number it holds.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+function drawMatrix(){
+  const vis = shown(), t = $('#tbl-matrix');
+  let h = '<thead><tr><th></th><th class="mx-corner">Criterion</th>';
+  vis.forEach(v => h += `<th class="mx-vhead"><div>${esc(vname(v))}</div></th>`);
+  if (state.target) h += '<th class="mx-vhead tgt"><div>Target</div></th>';
+  h += '</tr></thead>';
+
+  const NCOL = vis.length + 2 + (state.target ? 1 : 0);
+  C.forEach((c, ci) => {
+    const fs = F.filter(f => f.cat === c.id).sort((a,b) => a.order - b.order);
+    h += '<tbody>';
+    if (ci) h += `<tr class="catsep"><td colspan="${NCOL}"></td></tr>`;
+    fs.forEach((f, i) => {
+      h += '<tr>';
+      if (i === 0) h += `<td class="mx-rail" rowspan="${fs.length}"><div>${esc(c.rail)}</div></td>`;
+      h += `<th class="mx-feat" data-f="${f.id}" scope="row">${esc(f.name)}</th>`;
+      vis.forEach(v => {
+        const sc = f.scores[v.id], col = scoreColor(sc);
+        h += sc == null ? '<td class="mx-cell empty">.</td>'
+          : `<td class="mx-cell has" data-f="${f.id}" data-v="${v.id}" style="background:${col};color:${cellInk(col)}">${sc % 1 ? sc.toFixed(1) : sc}</td>`;
+      });
+      const cur = vis.length ? f.scores[vis[vis.length-1].id] : null;
+      if (state.target) h += `<td class="mx-tgt${f.thresh != null && cur != null && cur >= f.thresh ? ' met' : ''}">${f.thresh ?? '.'}</td>`;
+      h += '</tr>';
+    });
+    h += '</tbody>';
+  });
+
+  /* the overall measures: divided off, no rail label, still in the total */
+  const gen = GEN();
+  if (gen.length){
+    h += `<tbody><tr class="catsep"><td colspan="${NCOL}"></td></tr>`;
+    gen.forEach((f, i) => {
+      h += '<tr>';
+      if (i === 0) h += `<td class="mx-rail" rowspan="${gen.length}"></td>`;
+      h += `<th class="mx-feat" data-f="${f.id}" scope="row">${esc(f.name)}</th>`;
+      vis.forEach(v => {
+        const sc = f.scores[v.id], col = scoreColor(sc);
+        h += sc == null ? '<td class="mx-cell empty">.</td>'
+          : `<td class="mx-cell has" data-f="${f.id}" data-v="${v.id}" style="background:${col};color:${cellInk(col)}">${sc % 1 ? sc.toFixed(1) : sc}</td>`;
+      });
+      const cur = vis.length ? f.scores[vis[vis.length-1].id] : null;
+      if (state.target) h += `<td class="mx-tgt${f.thresh != null && cur != null && cur >= f.thresh ? ' met' : ''}">${f.thresh ?? '.'}</td>`;
+      h += '</tr>';
+    });
+    h += '</tbody>';
+  }
+
+  h += `<tfoot><tr class="mx-gapfoot"><td colspan="${vis.length + 2 + (state.target?1:0)}"></td></tr><tr class="mx-avg">
+        <td></td><th class="mx-feat" scope="row">Weighted average</th>`;
+  vis.forEach(v => { const sc = overall(v.id), col = scoreColor(sc);
+    h += `<td class="mx-cell" style="background:${col};color:${cellInk(col)}">${sc.toFixed(1)}</td>`; });
+  h += (state.target ? `<td class="mx-tgt">${T_ALL.toFixed(1)}</td>` : '') + '</tr></tfoot>';
+  t.innerHTML = h;
+
+  /* centre each diagonal header over its own column */
+  const cw = 64, font = '500 13.5px "IBM Plex Sans", sans-serif';
+  $$('#tbl-matrix .mx-vhead > div').forEach(d => {
+    d.style.left = Math.max(2, diagOffset(d.textContent, font, cw, 45)).toFixed(1) + 'px';
+  });
+
+  const met = F.filter(f => f.thresh != null && f.scores[latest.id] >= f.thresh).length;
+  $('#mx-thresh-note').textContent =
+    `${met} of ${F.filter(f => f.thresh != null).length} criteria are at or above target on ${vname(latest)}.`;
+}
+$('#tbl-matrix').addEventListener('mousemove', ev => {
+  const cell = ev.target.closest('.mx-cell.has'); if (!cell) return hideTip();
+  const f = F.find(x => x.id === cell.dataset.f), vi = V.findIndex(x => x.id === cell.dataset.v);
+  const s = f.scores[V[vi].id];
+  const prev = V.slice(0, vi).reverse().find(q => f.scores[q.id] != null);
+  showTip(ev, `<div class="t-h">${esc(f.name)}</div>
+    <div class="t-m">${esc(vname(V[vi]))} \u00b7 ${esc(catName(f))} \u00b7 weight ${f.weight}</div>
+    <div class="t-b">${esc(f.desc)}</div>
+    <div class="t-r"><span>score<br><b>${s}</b></span>
+      ${prev ? `<span>vs ${esc(vname(prev))}<br><b>${sign(s - f.scores[prev.id])}</b></span>` : ''}
+      ${f.thresh != null ? `<span>target<br><b>${f.thresh}</b></span>` : ''}</div>`);
+});
+$('#tbl-matrix').addEventListener('mouseleave', hideTip);
+$('#tbl-matrix').addEventListener('click', ev => {
+  const r = ev.target.closest('[data-f]'); if (r) openDrawer(r.dataset.f);
+});
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   5 \u00b7 WHAT'S LEFT \u2014 the one place a gradient earns its keep, because
+   here the horizontal axis really is a continuous 1\u219210 score.
+   Anchors are the four key colours, so it stays in the same language.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const ANCH = [[1,'red'],[5,'red'],[6.5,'orange'],[8.5,'green'],[10,'blue']];
+function mix(a, b, t){
+  const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16));
+  const [A,B] = [p(a), p(b)];
+  return '#' + A.map((v,i) => Math.round(v + (B[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function rampAt(s){
+  s = Math.min(10, Math.max(1, s));
+  for (let i = 0; i < ANCH.length-1; i++){
+    const [s0,c0] = ANCH[i], [s1,c1] = ANCH[i+1];
+    if (s <= s1) return mix(COL[c0], COL[c1], s1 === s0 ? 0 : (s-s0)/(s1-s0));
+  }
+  return COL.blue;
+}
+function bar(cur, target){
+  const pc = s => ((s-1)/9*100).toFixed(1) + '%';
+  const stops = [];
+  for (let i = 0; i <= 10; i++) stops.push(`${rampAt(1 + (cur-1)*i/10)} ${(i*10).toFixed(0)}%`);
+  return `<div class="gap-track">
+    <div class="gap-fill" style="width:${pc(cur)};background:linear-gradient(90deg,${stops.join(',')})"></div>
+    <div class="gap-need" style="left:${pc(target)}"></div></div>`;
+}
+function drawGap(){
+  const vid = latest.id;
+  $('#gap-cats').innerHTML = C.map(c => {
+    const cur = catScore(vid,c.id), th = threshOf(f => f.cat === c.id), g = th - cur;
+    return `<div class="gap-row"><div class="gap-name">${esc(c.short)}</div>
+      ${bar(cur,th)}<div class="gap-val" style="color:${g > .05 ? 'var(--ink)' : 'var(--thresh)'}">
+      ${g > .05 ? sign(g) : 'met'}<span>${cur.toFixed(1)} / ${th.toFixed(1)}</span></div></div>`;
+  }).join('');
+  const gaps = F.filter(f => f.thresh != null && f.scores[vid] != null && f.thresh > f.scores[vid])
+    .map(f => ({f, g:f.thresh - f.scores[vid], w:(f.thresh - f.scores[vid])*f.weight}))
+    .sort((a,b) => b.w - a.w).slice(0,12);
+  $('#gap-feats').innerHTML = gaps.map(({f,g}) => {
+    const cur = f.scores[vid];
+    const flat = new Set(V.map(v => f.scores[v.id]).filter(s => s != null)).size === 1;
+    return `<div class="gap-row"><div class="gap-name" style="font-family:var(--f-body);font-size:14px;
+        font-weight:500;text-transform:none;letter-spacing:0">${esc(f.name)}${flat ? '<span>never moved since 2023</span>' : ''}</div>
+      ${bar(cur,f.thresh)}<div class="gap-val">${sign(g)}<span>${cur} / ${f.thresh}</span></div></div>`;
+  }).join('');
+}
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   6 \u00b7 POSTS \u2014 pick a handful; each ticked one is pinned to the chart
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const POSTS = (DATA.posts || []).map(p => ({...p, t: day(p.date)}));
+const ERAS = (DATA.eras || []).map(e => ({...e, t0: day(e.start),
+                                          t1: e.end ? day(e.end) : null}));
+
+/* Two layers of persistence. The build bakes in whatever post-pins.json holds,
+   so the published page opens with those already set. Anything changed here is
+   kept in this browser and wins until "Reset to saved" puts the file back. */
+const PIN_KEY = 'edgecase-fsd-pins-v1';
+POSTS.forEach(p => { if (p.excerpt) state.excerpts[p.id] = p.excerpt; });
+(DATA.pinned || []).forEach(id => state.posts.add(id));
+const BASELINE = {selected:[...state.posts], excerpts:{...state.excerpts}, offsets:{},
+                  wm:{...state.wm}, watermark:state.watermark};
+function loadPins(){
+  let raw = null;
+  try { raw = localStorage.getItem(PIN_KEY); } catch(e){}
+  if (!raw) return;
+  try {
+    const v = JSON.parse(raw);
+    if (Array.isArray(v.selected)) state.posts = new Set(v.selected);
+    if (v.excerpts && typeof v.excerpts === 'object') state.excerpts = {...v.excerpts};
+    if (v.offsets  && typeof v.offsets  === 'object') state.offsets  = {...v.offsets};
+    if (v.wm && typeof v.wm === 'object') state.wm = {...state.wm, ...v.wm};
+    if (typeof v.stairs === 'boolean') state.stairs = v.stairs;
+    if (typeof v.scores === 'boolean') state.scores = v.scores;
+    if (typeof v.trend  === 'boolean') state.trend  = v.trend;
+    if (typeof v.band   === 'boolean') state.band   = v.band;
+    if (typeof v.eras   === 'boolean') state.eras   = v.eras;
+    if (typeof v.durs   === 'boolean') state.durs   = v.durs;
+    if (typeof v.ptrend === 'boolean') state.ptrend = v.ptrend;
+    if (typeof v.allRel === 'boolean') state.allRel = v.allRel;
+    if (typeof v.hw3 === 'boolean') state.hw3 = v.hw3;
+  } catch(e){}
+}
+function savePins(){
+  try { localStorage.setItem(PIN_KEY, JSON.stringify(
+    {selected:[...state.posts], excerpts:state.excerpts, offsets:state.offsets,
+     wm:state.wm, stairs:state.stairs, allRel:state.allRel,
+     scores:state.scores, trend:state.trend, band:state.band, eras:state.eras,
+     durs:state.durs, ptrend:state.ptrend, hw3:state.hw3})); } catch(e){}
+}
+function resetPins(){
+  try { localStorage.removeItem(PIN_KEY); } catch(e){}
+  state.posts = new Set(BASELINE.selected);
+  state.excerpts = {...BASELINE.excerpts};
+  state.offsets = {};
+  state.wm = {...BASELINE.wm}; state.watermark = BASELINE.watermark;
+}
+loadPins();
+/** what the chart shows for a post: a hand-trimmed excerpt, else the quote */
+const shownText = p => (state.excerpts[p.id] || '').trim() || p.quote;
+const TOPICS = [...new Set(POSTS.map(p => p.topic))].sort();
+
+/** what the score did in the releases after `t` (main line only) */
+function afterEffect(t){
+  const main = V.filter(v => v.track !== 'hw3');
+  const before = main.filter(v => v.t <= t).slice(-1)[0];
+  const after  = main.filter(v => v.t >  t);
+  if (!before || !after.length) return null;
+  const b = overall(before.id), n = overall(after[0].id), l = overall(after[after.length-1].id);
+  return {nextDelta: n - b, total: l - b, count: after.length,
+          months: Math.round((after[after.length-1].t - t)/2.63e9)};
+}
+
+function drawEvents(){
+  /* the public build ships without the Posts panel - nothing to draw */
+  if (!$('#view-events')) return;
+  const q = state.q.toLowerCase();
+  const list = POSTS.filter(p =>
+    (!state.topic || p.topic === state.topic) &&
+    (!q || p.quote.toLowerCase().includes(q) || p.date.includes(q)));
+
+  $('#topic-chips').innerHTML = TOPICS.map(t =>
+    `<button class="chip" data-topic="${esc(t)}" aria-pressed="${state.topic === t}">${esc(t)}</button>`).join('');
+
+  $('#post-list').innerHTML = list.map(p => {
+    const eff = afterEffect(p.t);
+    return `<div class="post" data-post="${esc(p.id)}" role="button" tabindex="0"
+                 aria-selected="${state.posts.has(p.id)}">
+      <div class="post-box">&#10003;</div>
+      <div class="post-date">${fmtDay(p.t)}<span>${esc(p.topic)}</span></div>
+      <div>
+        <div class="post-q">${esc(p.quote)}</div>
+        <div class="post-meta">
+          ${eff ? `next release <b>${sign(eff.nextDelta)}</b> &nbsp;\u00b7&nbsp; ${eff.months} months,
+                   ${eff.count} release${eff.count>1?'s':''} later <b>${sign(eff.total)}</b>`
+                : 'outside the surveyed window'}
+          ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener"
+                        onclick="event.stopPropagation()">open post</a>` : ''}
+        </div>
+        ${state.posts.has(p.id) ? `<div class="post-trim" onclick="event.stopPropagation()">
+          <label>Shown on the chart</label>
+          <textarea data-trim="${esc(p.id)}" rows="2"
+            placeholder="Trim it down &mdash; use \u2026 for the bits you cut">${esc(shownText(p))}</textarea>
+          <button class="mini" data-reset="${esc(p.id)}">Reset to full quote</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('') || '<div class="post-out">Nothing matches that search.</div>';
+
+  const n = state.posts.size;
+  const trimmed = Object.entries(state.excerpts)
+    .filter(([id,v]) => v && v.trim() && v.trim() !== (POSTS.find(p=>p.id===id)||{}).quote);
+  const dirty = n !== BASELINE.selected.length
+    || [...state.posts].some(id => !BASELINE.selected.includes(id))
+    || JSON.stringify(Object.fromEntries(trimmed)) !== JSON.stringify(BASELINE.excerpts);
+  $('#post-out').innerHTML = `${list.length} of ${POSTS.length} shown &nbsp;\u00b7&nbsp;
+    <b style="color:var(--ink-2)">${n} ticked</b>${n ? ' &mdash; showing on the timeline' : ''}
+    &nbsp;\u00b7&nbsp; kept in this browser${dirty ? '' : ', matching the saved file'}
+    ${dirty ? `<div class="post-json"><label>To bake these into the page itself, save this as
+      <code>post-pins.json</code> next to <code>build.py</code> and rebuild. Without it they stay
+      in this browser only.</label>
+      <textarea readonly rows="7">${esc(JSON.stringify(
+        {selected:[...state.posts], excerpts:Object.fromEntries(trimmed),
+         offsets:state.offsets, wm:state.wm, watermark:state.watermark}, null, 2))}</textarea>
+      </div>` : ''}`;
+}
+$('#post-list')?.addEventListener('click', e => {
+  const r = e.target.closest('[data-post]'); if (!r) return;
+  const id = r.dataset.post;
+  state.posts.has(id) ? state.posts.delete(id) : state.posts.add(id);
+  savePins(); drawEvents();
+});
+$('#post-list')?.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const r = e.target.closest('[data-post]'); if (!r) return;
+  e.preventDefault(); r.click();
+});
+$('#topic-chips')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-topic]'); if (!b) return;
+  state.topic = state.topic === b.dataset.topic ? '' : b.dataset.topic;
+  drawEvents();
+});
+$('#post-list')?.addEventListener('input', e => {
+  const t = e.target.closest('[data-trim]'); if (!t) return;
+  state.excerpts[t.dataset.trim] = t.value;
+  savePins();
+  drawTimeline();                     /* live on the chart, list stays put */
+});
+$('#post-list')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-reset]'); if (!b) return;
+  e.stopPropagation();
+  delete state.excerpts[b.dataset.reset];
+  delete state.offsets[b.dataset.reset];
+  savePins(); drawEvents(); drawTimeline();
+});
+$('#post-search')?.addEventListener('input', e => { state.q = e.target.value; drawEvents(); });
+$('#posts-clear')?.addEventListener('click', () => { state.posts.clear(); savePins(); drawEvents(); render(); });
+$('#posts-reset')?.addEventListener('click', () => { resetPins(); drawEvents(); render(); });
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   6b \u00b7 RELEASE HISTORY
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const RELEASES = (DATA.releases || []).map(r => ({...r, t: day(r.date)}));
+/* Map each surveyed column to the MOST SPECIFIC release it belongs to.
+   Matching the other way round over-marks: a plain "11" is a prefix of
+   "11.3.6" and would claim a column that was really scored on 11.3. */
+const relNorm = v => v.replace(/^[Vv]/, '').replace(/\s*-.*$/, '').replace(/\.x$/, '').trim();
+const SURVEYED = new Map();          // release version -> [survey columns]
+V.forEach(v => {
+  const nv = relNorm(v.label);
+  let best = null;
+  RELEASES.forEach(r => {
+    const nr = relNorm(r.version);
+    /* the column's family: the build itself, or anything under it */
+    if (!(nv === nr || nr.startsWith(nv + '.'))) return;
+    /* A column can cover several similar builds - "11.4.4 - .9" is six of
+       them - so it belongs to the EARLIEST in the family. That is also what
+       the staircase means: the score reached this level when the first of
+       those builds shipped, and held until the next column. */
+    if (!best || r.t < best.t) best = r;
+  });
+  if (best){
+    if (!SURVEYED.has(best.version)) SURVEYED.set(best.version, []);
+    SURVEYED.get(best.version).push(v);
+  }
+});
+const surveyedAs = rel => SURVEYED.get(rel.version) || null;
+function drawReleases(){
+  let h = `<thead><tr><th>Version</th><th>Released</th><th>Since previous</th>
+           <th>Hardware</th><th>In the survey</th><th>Note</th></tr></thead><tbody>`;
+  const ordered = RELEASES.slice().reverse();          /* newest at the top */
+  ordered.forEach((r, i) => {
+    const prev = ordered[i+1] || null;                  /* the one before it */
+    const days = prev ? Math.round((r.t - prev.t)/864e5) : null;
+    const sv = surveyedAs(r);
+    h += `<tr class="${sv ? 'surveyed' : ''}${r.public === false ? ' notpublic' : ''}">
+      <td class="rel-v">${esc(r.version)}</td>
+      <td class="rel-d">${fmtDay(r.t)}${r.approx ? ' <span style="color:var(--ink-4)" title="sources give a rollout window, not a single day">approx</span>' : ''}</td>
+      <td class="rel-gap">${days == null ? '' : days + ' days'}</td>
+      <td class="rel-gap">${esc(r.branch)}</td>
+      <td>${sv ? sv.map(v => `<span class="rel-tag on" title="${esc(v.label)} - survey column">${esc(v.label)}</span>`).join(' ') : ''}</td>
+      <td class="rel-note">${r.public === false
+          ? '<span class="rel-tag off">not released to public</span> ' : ''}${esc(r.note)}</td></tr>`;
+  });
+  h += '</tbody>';
+  $('#tbl-releases').innerHTML = h;
+  const matched = V.length;
+  const gaps = RELEASES.slice(1).map((r,i) => (r.t - RELEASES[i].t)/864e5);
+  const median = gaps.slice().sort((a,b) => a-b)[Math.floor(gaps.length/2)];
+  $('#rel-note').textContent =
+    `${RELEASES.length} releases listed. ${matched} of your survey columns line up with one. `
+    + `Median gap between releases ${Math.round(median)} days.`;
+}
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   7 \u00b7 DRAWER
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+function openDrawer(fid){
+  const f = F.find(x => x.id === fid); if (!f) return;
+  const hist = V.filter(v => f.scores[v.id] != null), cur = f.scores[latest.id];
+  const W = 430, Hh = 140;
+  const x = i => 10 + i*(W-52)/Math.max(1,hist.length-1), y = s => 14 + (10-s)/9*(Hh-42);
+  let d = `M${x(0).toFixed(1)} ${y(f.scores[hist[0].id]).toFixed(1)}`;
+  for (let i = 1; i < hist.length; i++)
+    d += ` L${x(i).toFixed(1)} ${y(f.scores[hist[i-1].id]).toFixed(1)} L${x(i).toFixed(1)} ${y(f.scores[hist[i].id]).toFixed(1)}`;
+  $('#dr-body').innerHTML = `
+    <div class="dr-cat">${esc(catName(f))} &nbsp;\u00b7&nbsp; weight ${f.weight} of 10</div>
+    <h3>${esc(f.name)}</h3>
+    <p class="dr-desc">${esc(f.desc) || 'No description recorded.'}</p>
+    <div class="dr-stats">
+      <div class="dr-stat"><div class="ro-k">Now</div><div class="ro-v" style="font-size:26px;color:${scoreColor(cur)}">${cur ?? '\u00b7'}</div></div>
+      <div class="dr-stat"><div class="ro-k">Target</div><div class="ro-v" style="font-size:26px;color:var(--thresh)">${f.thresh ?? '\u00b7'}</div></div>
+      <div class="dr-stat"><div class="ro-k">Since 2023</div><div class="ro-v" style="font-size:26px">${sign(cur - f.scores[first.id])}</div></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto;overflow:visible">
+      ${f.thresh != null ? `<line x1="10" x2="${W-40}" y1="${y(f.thresh)}" y2="${y(f.thresh)}" stroke="var(--thresh)" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="${W-36}" y="${y(f.thresh)+4}" class="axis-t" fill="var(--thresh)">${f.thresh}</text>` : ''}
+      <path d="${d}" fill="none" stroke="var(--ink-3)" stroke-width="2"/>
+      ${hist.map((v,i) => `<circle cx="${x(i)}" cy="${y(f.scores[v.id])}" r="5" fill="${scoreColor(f.scores[v.id])}" stroke="var(--panel)" stroke-width="1.5"><title>${esc(v.label)}: ${f.scores[v.id]}</title></circle>`).join('')}
+      ${hist.map((v,i) => `<text x="${x(i)}" y="${Hh-3}" class="axis-t" text-anchor="middle" style="font-size:9px;fill:var(--ink-4)">${esc(v.label.replace(/^V/,'').split(' ')[0])}</text>`).join('')}
+    </svg>
+    <div class="dr-flags">
+      ${f.flags.robotaxi ? '<span class="flagpill">Required for robotaxi</span>' : ''}
+      ${f.flags.disengage ? '<span class="flagpill">Leads to disengagement</span>' : ''}
+      ${f.flags.critical ? '<span class="flagpill">Critical disengagement</span>' : ''}</div>`;
+  const dr = $('#drawer'); dr.hidden = false; dr.classList.add('on'); $('#dr-close').focus();
+}
+const closeDrawer = () => { const d = $('#drawer'); d.classList.remove('on'); d.hidden = true; };
+$('#dr-close').addEventListener('click', closeDrawer);
+$('#drawer').addEventListener('click', e => { if (e.target.id === 'drawer') closeDrawer(); });
+addEventListener('keydown', e => { if (e.key === 'Escape'){ closeDrawer(); hideTip(); $('#poster').classList.remove('on'); } });
+</script>
+
+<script>
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   8 \u00b7 CONTROLS, HEADLINE, RENDER
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+function buildChips(){
+  $('#version-chips').innerHTML = V.map(v =>
+    `<button class="chip" data-v="${v.id}" aria-pressed="${state.versions.has(v.id)}"
+      title="${esc(vname(v))} surveyed ${fmtDate(v.t)}${v.track !== 'shared' ? ' \u2014 ' + v.track.toUpperCase() + ' only' : ''}">
+      ${esc(vname(v))}<span class="dt">${fmtShort(v.t)}</span></button>`).join('');
+  $('#cat-chips').innerHTML = C.map(c =>
+    `<button class="chip" data-c="${c.id}" aria-pressed="${state.cats.has(c.id)}">
+      <span class="dot" style="background:${c.line}"></span>${esc(c.short)}</button>`).join('');
+}
+$('#version-chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-v]'); if (!b) return;
+  const id = b.dataset.v;
+  state.versions.has(id) ? state.versions.delete(id) : state.versions.add(id);
+  if (!state.versions.size) state.versions.add(id);
+  render();
+});
+$('#cat-chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  const id = b.dataset.c;
+  state.cats.has(id) ? state.cats.delete(id) : state.cats.add(id);
+  render();
+});
+$('#toggle-here').addEventListener('click', () => { state.here = !state.here; render(); });
+$('#toggle-stairs').addEventListener('click', () => {
+  state.stairs = !state.stairs; savePins(); render(); });
+$('#toggle-scores').addEventListener('click', () => {
+  state.scores = !state.scores; savePins(); render(); });
+$('#toggle-trend').addEventListener('click', () => {
+  state.trend = !state.trend; savePins(); render(); });
+$('#toggle-band').addEventListener('click', () => {
+  state.band = !state.band; savePins(); render(); });
+$('#toggle-eras').addEventListener('click', () => {
+  state.eras = !state.eras; savePins(); render(); });
+$('#toggle-ptrend').addEventListener('click', () => {
+  state.ptrend = !state.ptrend; savePins(); render(); });
+$('#toggle-durs').addEventListener('click', () => {
+  state.durs = !state.durs; savePins(); render(); });
+$('#toggle-allrel').addEventListener('click', () => {
+  state.allRel = !state.allRel; savePins(); render(); });
+$('#toggle-hw3').addEventListener('click', () => {
+  state.hw3 = !state.hw3; savePins(); render(); });
+$('#toggle-pins')?.addEventListener('click', () => { state.pins = !state.pins; render(); });
+$('#toggle-target').addEventListener('click', () => {
+  state.target = !state.target;
+  /* the summary lives inside the timeline SVG, and this toggle is reachable
+     from the Matrix tab, so redraw it even when it is not the visible view */
+  drawTimeline();
+  render();
+});
+$('#preset-major').addEventListener('click', () => { state.versions = new Set(V.filter(v=>v.default).map(v=>v.id)); render(); });
+$('#preset-all').addEventListener('click',   () => { state.versions = new Set(V.map(v=>v.id)); render(); });
+
+function go(view){
+  state.view = view;
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.view === view));
+  $$('.view').forEach(v => v.hidden = v.id !== 'view-' + view);
+  $('#grp-cats').style.display = view === 'timeline' ? '' : 'none';
+  $('#grp-pins').style.display = view === 'timeline' ? '' : 'none';
+  $('#grp-cols').style.display = (view === 'timeline' || view === 'matrix') ? '' : 'none';
+  render();
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => go(t.dataset.view)));
+
+function buildHeadline(){
+  const cur = overall(latest.id);
+  /* out of 10 spelled out: a bare 8.2 means nothing to someone seeing this
+     for the first time. The colour is the matrix's own band colour, so it
+     turns orange or red on its own if the score ever falls. */
+  $('#ro-cur').innerHTML = cur.toFixed(1) + '<span class="ro-out"> / 10</span>';
+  $('#ro-cur').style.color = scoreColor(cur);
+  $('#ro-curv').textContent = vname(latest);
+  $('#ro-gap').textContent = sign(T_LOW - cur); $('#ro-gap').style.color = 'var(--thresh)';
+  $('#ro-gapn').textContent = 'band ' + BAND[0].toFixed(1) + '-' + BAND[1].toFixed(1);
+  $('#ro-since').textContent = sign(cur - overall(first.id));
+  $('#ro-sincen').textContent = V.length + ' releases';
+  $('#span-range').textContent = fmtDate(first.t) + ' to ' + fmtDate(latest.t);
+  $('#span-nfeat').textContent = F.length;
+  $('#foot-gen').textContent = 'Build ' + DATA.generated + '.' + (DATA.build || '')
+    + ' \u00b7 ' + DATA.sourceRows + ' surveyed criteria';
+  $('#key-matrix').innerHTML = keyHTML(false);
+}
+function render(){
+  $$('#version-chips [data-v]').forEach(b => b.setAttribute('aria-pressed', state.versions.has(b.dataset.v)));
+  $$('#cat-chips [data-c]').forEach(b => b.setAttribute('aria-pressed', state.cats.has(b.dataset.c)));
+  $('#toggle-here').setAttribute('aria-pressed', state.here);
+  $('#toggle-stairs').setAttribute('aria-pressed', state.stairs);
+  $('#toggle-scores').setAttribute('aria-pressed', state.scores);
+  $('#toggle-trend').setAttribute('aria-pressed', state.trend);
+  $('#toggle-band').setAttribute('aria-pressed', state.band);
+  $('#toggle-eras').setAttribute('aria-pressed', state.eras);
+  $('#toggle-durs').setAttribute('aria-pressed', state.durs);
+  $('#toggle-ptrend').setAttribute('aria-pressed', state.ptrend);
+  $('#toggle-allrel').setAttribute('aria-pressed', state.allRel);
+  $('#toggle-hw3').setAttribute('aria-pressed', state.hw3);
+  $('#toggle-pins')?.setAttribute('aria-pressed', state.pins);
+  $('#toggle-target').setAttribute('aria-pressed', state.target);
+  if (state.view === 'timeline') drawTimeline();
+  else ({matrix:drawMatrix, gap:drawGap, events:drawEvents, releases:drawReleases})[state.view]();
+}
+buildChips(); buildHeadline(); render();
+if (document.fonts) document.fonts.ready.then(render);
+/* Cards can be nudged by hand when the automatic placement is not what you
+   want. The listeners live on the <svg>, not the card, because every redraw
+   replaces the card element underneath the cursor. */
+(function enableCardDrag(){
+  const svg = $('#svg-timeline');
+  let drag = null;
+  svg.addEventListener('pointerdown', e => {
+    const c = e.target.closest('[data-card]'); if (!c) return;
+    const r = svg.getBoundingClientRect();
+    const k = (svg.viewBox.baseVal.width || r.width) / (r.width || 1);
+    const id = c.getAttribute('data-card');
+    const base = state.offsets[id] || {dx:0, dy:0};
+    drag = {id, k, x0:e.clientX, y0:e.clientY, dx:base.dx, dy:base.dy, moved:false,
+            fx:state.wm.fx, fy:state.wm.fy};
+    try { svg.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!drag) return;
+    drag.moved = true;
+    const dx = (e.clientX - drag.x0)*drag.k, dy = (e.clientY - drag.y0)*drag.k;
+    if (drag.id === '__wm__'){
+      const cl = v => Math.min(1, Math.max(0, v));
+      state.wm = {fx: cl(drag.fx + dx/PLOT.w), fy: cl(drag.fy + dy/PLOT.h)};
+    } else {
+      state.offsets[drag.id] = {dx: drag.dx + dx, dy: drag.dy + dy};
+    }
+    drawTimeline();
+  });
+  const end = e => {
+    if (!drag) return;
+    if (drag.moved){ savePins(); if (state.view === 'events') drawEvents(); }
+    drag = null;
+    try { svg.releasePointerCapture(e.pointerId); } catch(err){}
+  };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+})();
+
+/* the SVG scales itself now, so no redraw on resize */
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   8b \u00b7 SVG \u2192 PNG
+   A serialised SVG is rendered by the browser as an isolated document: it
+   cannot see the page's stylesheet and will not load webfonts. So before
+   rasterising, fold in (a) the CSS custom properties and the handful of
+   class rules the chart uses, and (b) the fonts themselves as data URIs.
+   Fonts are requested subset to only the characters actually drawn, which
+   keeps four families down to a few KB instead of megabytes.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const SVG_CLASSES = ['.gridline','.gridline.major','.axis-t','.axis-t.dim','.vlabel',
+                     '.vscore','.band-t','.era-t','.dur-t','.date-t','.ptrend-t','.trend-t','.pt-hit','.pin-stem','.pin-hd',
+                     '.serieslab','.qcard'];
+const SVG_VARS = ['--ground','--panel','--panel-2','--raised','--rule','--rule-2',
+                  '--ink','--ink-2','--ink-3','--ink-4','--accent','--trend','--ptrend','--thresh',
+                  '--thresh-wash','--thresh-edge','--k-red','--k-orange','--k-green','--k-blue',
+                  '--hw3','--hw4','--f-display','--f-body','--f-mono','--f-script'];
+const FONT_FAMILIES = ['Barlow Condensed:wght@500;600;700',
+                       'IBM Plex Mono:wght@400;500;600;700',
+                       'IBM Plex Sans:wght@400;500;600',
+                       'Nanum Brush Script'];
+
+function cssRulesFor(selectors){
+  const want = new Set(selectors), out = [];
+  for (const sheet of document.styleSheets){
+    let rules; try { rules = sheet.cssRules; } catch(e){ continue; }
+    for (const r of rules || []) if (r.selectorText && want.has(r.selectorText)) out.push(r.cssText);
+  }
+  return out.join('\n');
+}
+function varBlock(){
+  const cs = getComputedStyle(document.documentElement);
+  return 'svg{' + SVG_VARS.map(v => `${v}:${cs.getPropertyValue(v).trim()}`).join(';') + '}';
+}
+const b64 = buf => {
+  const b = new Uint8Array(buf); let s2 = '';
+  for (let i = 0; i < b.length; i += 0x8000) s2 += String.fromCharCode.apply(null, b.subarray(i, i+0x8000));
+  return btoa(s2);
+};
+/* A fixed set, not "whatever the first render happened to contain". Subsetting
+   to observed characters and then caching meant text drawn later - the summary
+   labels - hit glyphs the subset never included, and fell back mid-word. */
+const FONT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  + "0123456789 .,:;'\"-/()[]%+<>=@#&!?*" + '\u2013\u2014\u2026\u201C\u201D\u00b7\u00d7';
+let FONT_CSS = null;
+async function inlineFonts(chars){
+  if (FONT_CSS !== null) return FONT_CSS;
+  try {
+    const text = encodeURIComponent([...new Set(FONT_CHARS + (chars || ''))].join(''));
+    const out = [];
+    for (const fam of FONT_FAMILIES){
+      const url = `https://fonts.googleapis.com/css2?family=${fam.replace(/ /g,'+')}&text=${text}`;
+      let css = await fetch(url).then(r => r.ok ? r.text() : Promise.reject(r.status));
+      const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/g)].map(m => m[1]);
+      for (const u of urls){
+        const data = await fetch(u).then(r => r.arrayBuffer());
+        css = css.replace(u, 'data:font/woff2;base64,' + b64(data));
+      }
+      out.push(css);
+    }
+    FONT_CSS = out.join('\n');
+  } catch(e){ FONT_CSS = false; }      /* false = unavailable, fall back */
+  return FONT_CSS;
+}
+
+/** Draw the timeline into a detached SVG and rasterise it at `scale`. */
+async function rasterizeTimeline(W, H, scale){
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('xmlns', NS);
+  drawTimeline({svg, W, H});
+  /* the chart grows to fit the summary, so take the size it settled on */
+  const vb = (svg.getAttribute('viewBox') || `0 0 ${W} ${H}`).split(/\s+/).map(Number);
+  const VW = vb[2], VH = vb[3];
+  const chars = [...svg.querySelectorAll('text')].map(t => t.textContent).join('') + '0123456789.';
+  const fonts = await inlineFonts(chars);
+  if (fonts === false) return null;                       /* caller falls back */
+  const st = document.createElementNS(NS, 'style');
+  st.textContent = fonts + '\n' + varBlock() + '\n' + cssRulesFor(SVG_CLASSES);
+  svg.insertBefore(st, svg.firstChild);
+  svg.setAttribute('width', VW*scale); svg.setAttribute('height', VH*scale);
+  svg.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+  const blob = new Blob([new XMLSerializer().serializeToString(svg)], {type:'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url;
+    });
+    return img;
+  } catch(e){ return null; }
+  finally { URL.revokeObjectURL(url); }
+}
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   9 \u00b7 POSTER EXPORT \u2014 redrawn for social, not a crop of the page.
+   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const D_ = '"Barlow Condensed",Impact,sans-serif', M_ = '"IBM Plex Mono",monospace',
+      B_ = '"IBM Plex Sans",sans-serif', S_ = '"Nanum Brush Script",cursive';
+/* Handwritten mark for the empty space under the title block. */
+function watermark(x, X0, Y0, size, alpha){
+  x.save();
+  x.font = `400 ${size}px ${S_}`;
+  x.fillStyle = '#ffffff'; x.globalAlpha = alpha == null ? 0.07 : alpha;
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillText('@EdgeCase411', X0, Y0);
+  x.restore();
+}
+const LS = (x,v) => { try { x.letterSpacing = v; } catch(e){} };
+function baseCanvas(w, h, title, sub){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.fillStyle = CSSV('--ground'); x.fillRect(0,0,w,h);
+  const P = 76;
+  LS(x,'5px'); x.font = `500 22px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.fillText('\u{1D54F}@EDGECASE411   INDEPENDENT FSD SURVEY', P, P);
+  LS(x,'1px'); x.font = `700 78px ${D_}`; x.fillStyle = CSSV('--ink');
+  x.fillText(title.toUpperCase(), P, P + 76);
+  LS(x,'0px'); x.font = `400 26px ${B_}`; x.fillStyle = CSSV('--ink-2');
+  x.fillText(sub, P, P + 116);
+  const cur = overall(latest.id);
+  x.textAlign = 'right';
+  x.font = `500 19px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.fillText('WEIGHTED SCORE  ' + vname(latest).toUpperCase(), w - P, P + 6);
+  x.font = `600 42px ${D_}`; x.fillStyle = CSSV('--ink-3');
+  const outOf = ' / 10';
+  x.fillText(outOf, w - P, P + 94);
+  const outW = x.measureText(outOf).width;
+  x.font = `700 94px ${D_}`; x.fillStyle = scoreColor(cur);
+  x.fillText(cur.toFixed(1), w - P - outW, P + 94);
+  x.textAlign = 'left';
+  return {c, x, P};
+}
+/* the key, read down the page \u2014 same shape as the spreadsheet's */
+function drawKey(x, X0, Y0, sc){
+  sc = sc || 1;
+  const SW = 76*sc, SH = 30*sc, STEP = 35*sc;
+  LS(x,'3px'); x.font = `500 ${18*sc}px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.textAlign = 'left'; x.fillText('SURVEY KEY', X0, Y0); LS(x,'0px');
+  KEY.forEach((k, i) => {
+    const y = Y0 + 18*sc + i*STEP, col = CSSV(k.var);
+    x.fillStyle = col; rr(x, X0, y, SW, SH, 4); x.fill();
+    x.fillStyle = cellInk(col); x.font = `700 ${20*sc}px ${M_}`; x.textAlign = 'center';
+    x.fillText(k.sw, X0 + SW/2, y + SH*0.71);
+    x.textAlign = 'left'; x.fillStyle = CSSV('--ink-2'); x.font = `400 ${21*sc}px ${B_}`;
+    x.fillText(k.desc, X0 + SW + 18*sc, y + SH*0.71);
+  });
+  return Y0 + 18*sc + KEY.length*STEP;
+}
+function rr(x, X0, Y0, w, h, r){ x.beginPath();
+  if (x.roundRect) x.roundRect(X0, Y0, w, h, r); else x.rect(X0, Y0, w, h); }
+function wrapText(x, t, X0, Y0, w, lh){
+  let line = '', y = Y0;
+  for (const wd of t.split(' ')){
+    if (x.measureText(line + wd + ' ').width > w && line){ x.fillText(line, X0, y); line = ''; y += lh; }
+    line += wd + ' ';
+  }
+  x.fillText(line, X0, y); return y;
+}
+/* Fallback only: used when the fonts cannot be inlined (e.g. a strict CSP
+   blocks fonts.gstatic.com), so the card still renders without them. */
+function posterTimelineCanvas(){
+  const W = 2400, H = 1960;
+  const {c, x, P} = baseCanvas(W, H, 'FSD Progress Tracker',
+    'Weighted score across ' + F.length + ' criteria');
+  const vis = shown(); if (!vis.length) return c;
+  const EH = state.eras && ERAS.length ? 104 : 0;  /* 2x the page's 52 */
+  const DH = state.durs && ERAS.length ? 80 : 0;  /* 2x the page's 40 */
+  const T = 330 + EH + DH, B = 1300, L = P + 60, R = W - P - 40;
+  const t0 = Math.min(...vis.map(v=>v.t));
+  const t1 = Math.max(Math.max(...vis.map(v=>v.t)), NOW);
+  const padL = Math.max((t1-t0)*.025, 864e5*18), padR = Math.max((t1-t0)*.14, 864e5*100);
+  const X = t => L + (t - t0 + padL)/(t1 - t0 + padL + padR)*(R - L), Y = s => T + (10-s)/9*(B-T);
+
+  if (state.watermark)
+    watermark(x, L + state.wm.fx*(R - L), T + state.wm.fy*(B - T), 80, .07);
+
+  if (DH){
+    const RY = T - EH - DH + 40, TK = 18;
+    x.strokeStyle = CSSV('--rule-2'); x.lineWidth = 2;
+    ERAS.forEach(e => {
+      const m = eraMonths(e, t0);
+      if (!m) return;
+      const a = Math.max(L, X(e.t0)) + 6, b = Math.min(R, X(e.t1 == null ? NOW : e.t1)) - 6;
+      if (b - a < 60) return;
+      const seg = (p, q) => { x.beginPath(); x.moveTo(p, RY); x.lineTo(q, RY); x.stroke(); };
+      [a, b].forEach(c => { x.beginPath(); x.moveTo(c, RY); x.lineTo(c, RY + TK); x.stroke(); });
+      const lab = m.n + ' mo' + (m.open ? ' +' : '');
+      x.font = `500 29px ${M_}`;
+      const lw = x.measureText(lab).width + 1.75*lab.length, mid = (a + b)/2, half = lw/2 + 18;
+      if (b - a > lw + 80){
+        seg(a, mid - half); seg(mid + half, b);
+        LS(x,'1.4px'); x.fillStyle = CSSV('--ink-2'); x.textAlign = 'center';
+        x.fillText(lab, mid, RY + 8); LS(x,'0px');
+      } else seg(a, b);
+    });
+  }
+
+  if (EH){
+    const PY = T - EH + 12, PH = 64;
+    ERAS.forEach(e => {
+      const a = Math.max(L, X(e.t0)), b = Math.min(R, X(e.t1 == null ? NOW : e.t1));
+      if (b - a < 16) return;
+      x.fillStyle = CSSV('--raised');
+      x.beginPath(); x.roundRect(a + 4, PY, b - a - 8, PH, PH/2); x.fill();
+      if (b - a > 64){
+        LS(x,'4.5px'); x.font = `500 32px ${M_}`; x.fillStyle = CSSV('--ink-3');
+        x.textAlign = 'center';
+        x.fillText('V' + e.major, (a + b)/2, PY + PH/2 + 11); LS(x,'0px');
+      }
+    });
+  }
+
+  if (state.band){
+    x.fillStyle = 'rgba(47,191,120,.13)'; x.fillRect(L, Y(BAND[1]), R-L, Y(BAND[0])-Y(BAND[1]));
+    x.strokeStyle = 'rgba(47,191,120,.45)'; x.lineWidth = 2;
+    [BAND[0],BAND[1]].forEach(b => { x.beginPath(); x.moveTo(L, Y(b)); x.lineTo(R, Y(b)); x.stroke(); });
+    LS(x,'7.5px'); x.font = `600 37px ${D_}`; x.fillStyle = CSSV('--thresh');
+    x.fillText('GUESTIMATED UNSUPERVISED ROBOTAXI THRESHOLD RANGE  '
+               + BAND[0].toFixed(1) + ' - ' + BAND[1].toFixed(1), L + 26, Y(BAND[1]) - 16);
+    LS(x,'0px');
+  }
+
+  for (let n = 1; n <= 10; n++){
+    x.strokeStyle = CSSV('--rule'); x.lineWidth = 1;
+    x.beginPath(); x.moveTo(L, Y(n) + .5); x.lineTo(R, Y(n) + .5); x.stroke();
+    x.font = `400 28px ${M_}`; x.fillStyle = CSSV('--ink-3'); x.textAlign = 'right';
+    x.fillText(n, L - 22, Y(n) + 10); x.textAlign = 'left';
+  }
+  const yA = new Date(t0).getUTCFullYear(), yB = new Date(t1 + (t1-t0)*.22).getUTCFullYear();
+  for (let yr = yA; yr <= yB+1; yr++) for (const mo of [0,6]){
+    const t = Date.UTC(yr,mo,1); if (t < t0-padL || t > t1+padR) continue;
+    const jan = mo === 0;
+    x.strokeStyle = CSSV('--rule'); x.globalAlpha = jan ? 1 : .5; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(X(t) + .5, T); x.lineTo(X(t) + .5, B); x.stroke(); x.globalAlpha = 1;
+    x.textAlign = 'center'; x.fillStyle = jan ? CSSV('--ink') : CSSV('--ink-2');
+    x.font = `${jan ? 600 : 400} ${jan ? 34 : 27}px ${jan ? D_ : M_}`;
+    x.fillText(new Date(t).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'}), X(t), B + 56);
+    x.textAlign = 'left';
+  }
+  const Pt = v => ({v, t:v.t, s:overall(v.id), x:X(v.t), y:Y(overall(v.id))});
+  const trunk = vis.filter(v => v.track === 'shared').map(Pt);
+  const br = tr => { const b = vis.filter(v => v.track === tr).map(Pt);
+                     return b.length && trunk.length ? [trunk[trunk.length-1], ...b] : b; };
+  const hw4 = br('hw4'), hw3 = br('hw3'), main = [...trunk, ...hw4.slice(1)];
+  const cl = n => Math.min(10, Math.max(1, n));
+  const tA = main.length ? main[0].t : t0, tB = t1 + (t1-t0)*.22;
+  const curve = fn => { x.beginPath();
+    for (let i = 0; i <= 90; i++){ const t = tA + (tB-tA)*i/90;
+      i ? x.lineTo(X(t), Y(cl(fn.at(t)))) : x.moveTo(X(t), Y(cl(fn.at(t)))); }
+    x.stroke(); };
+  if (state.ptrend && main.length){
+    priorCutoffs(main, 1).forEach(cut => {
+      const lf = fitLine(main.filter(p => majorOf(p) <= cut));
+      if (!lf) return;
+      const tTop = lf.at(tB) > 10 ? lf.reaches(10) : tB;
+      x.strokeStyle = CSSV('--ptrend');
+      x.lineWidth = 2.8; x.setLineDash([11,13]); x.globalAlpha = .72;
+      x.beginPath();
+      x.moveTo(X(tA), Y(Math.min(10, lf.at(tA))));
+      x.lineTo(X(tTop), Y(Math.min(10, lf.at(tTop))));
+      x.stroke(); x.setLineDash([]);
+      const atEdge = tTop >= tB - 1;
+      LS(x,'1.7px'); x.font = `500 21px ${M_}`; x.fillStyle = CSSV('--ptrend');
+      x.globalAlpha = .9; x.textAlign = atEdge ? 'right' : 'left';
+      x.fillText('legacy trend \u00b7 thru v' + cut,
+                 X(tTop) + (atEdge ? -12 : 16),
+                 Y(Math.min(10, lf.at(tTop))) + (atEdge ? -12 : 28));
+      LS(x,'0px');
+    });
+    x.globalAlpha = 1;
+  }
+  const f = state.trend ? fit(main) : null;
+  if (f){
+    x.strokeStyle = CSSV('--trend'); x.lineWidth = 3.5; x.setLineDash([14,14]); x.globalAlpha = .7;
+    curve(f); x.setLineDash([]); x.globalAlpha = 1; }
+  const stair = (p, wdt, dash, col) => { if (p.length < 2) return;
+    x.setLineDash(dash||[]); x.strokeStyle = col; x.lineWidth = wdt; x.lineJoin = 'miter';
+    x.beginPath(); x.moveTo(p[0].x, p[0].y);
+    for (let i = 1; i < p.length; i++){ x.lineTo(p[i].x, p[i-1].y); x.lineTo(p[i].x, p[i].y); }
+    x.stroke(); x.setLineDash([]); };
+  /* past the last surveyed release the level is an assumption \u2014 dash it */
+  /* solid to today - the score is known to have held through every point build
+     since - then dotted past today, where nothing is known */
+  const tail = (p, wdt, col) => { if (!p.length) return;
+    const e = p[p.length-1], nx = X(NOW);
+    if (nx > e.x + 1){
+      x.save(); x.strokeStyle = col; x.lineWidth = wdt; x.lineCap = 'butt';
+      x.beginPath(); x.moveTo(e.x, e.y); x.lineTo(nx, e.y); x.stroke(); x.restore();
+    }
+    x.save(); x.setLineDash([3,12]); x.lineCap = 'round'; x.globalAlpha = .75;
+    x.strokeStyle = col; x.lineWidth = wdt;
+    x.beginPath(); x.moveTo(Math.max(e.x, nx), e.y); x.lineTo(R, e.y); x.stroke(); x.restore(); };
+  stair(hw3, 3.5, [13,11], CSSV('--ink-3'));
+  stair(main, 5, null, CSSV('--ink'));
+  tail(hw3, 3.5, CSSV('--ink-3'));
+  tail(main, 5, CSSV('--ink'));
+  [...main, ...hw3.slice(1)].forEach(p => {
+    const h3 = p.v.track === 'hw3';
+    x.beginPath(); x.arc(p.x, p.y, 11, 0, 7);
+    x.fillStyle = h3 ? CSSV('--ink-3') : CSSV('--ink'); x.fill();
+    x.lineWidth = 5; x.strokeStyle = CSSV('--ground'); x.stroke();
+    x.textAlign = 'center'; x.font = `500 40px ${M_}`;
+    x.fillStyle = h3 ? CSSV('--ink-3') : CSSV('--ink');
+    x.fillText(p.s.toFixed(1), p.x, p.y - 34);
+    x.textAlign = 'left';
+  });
+
+  const lastRel = main[main.length-1];
+  const here = state.here && lastRel ? {x: X(NOW), y: lastRel.y} : null;
+  if (here){
+    x.beginPath(); x.arc(here.x, here.y, 13, 0, 7);
+    x.fillStyle = CSSV('--k-red'); x.fill();
+    x.lineWidth = 5; x.strokeStyle = CSSV('--ground'); x.stroke();
+    const right = here.x - 340 < L;
+    const lx = here.x + (right ? 104 : -104), ly = here.y + 132;
+    const tipX = here.x + (right ? 19 : -19), tipY = here.y + 19;
+    x.strokeStyle = CSSV('--ink-2'); x.lineWidth = 3;
+    x.beginPath(); x.moveTo(lx + (right ? -16 : 16), ly - 28); x.lineTo(tipX, tipY); x.stroke();
+    const a = Math.atan2(tipY - (ly - 28), tipX - (lx + (right ? -16 : 16)));
+    x.save(); x.translate(tipX, tipY); x.rotate(a);
+    x.fillStyle = CSSV('--ink-2'); x.beginPath();
+    x.moveTo(0,0); x.lineTo(-18, -7); x.lineTo(-18, 7); x.closePath(); x.fill(); x.restore();
+    LS(x,'5px'); x.font = `600 30px ${D_}`; x.fillStyle = CSSV('--ink');
+    x.textAlign = right ? 'left' : 'right';
+    x.fillText('WE ARE HERE', lx, ly); LS(x,'0px');
+    x.font = `400 24px ${M_}`; x.fillStyle = CSSV('--ink-3');
+    x.fillText((NOW_BUILD ? NOW_BUILD + '   ' : '') + fmtDay(NOW), lx, ly + 32);
+    x.textAlign = 'left';
+  }
+  let posterQuotes = 0;
+  if (state.pins){
+    const ho = state.offsets['__here__'] || {dx:0, dy:0};
+    const hb = here ? {x: here.x - 300 + ho.dx*2, y: here.y + 90 + ho.dy*2, w:320, h:100} : null;
+    layoutQuotes({X, Y, W, H, M:{t:T, r:W-R, b:H-B, l:L-P}, main, t0, t1, padL, padR,
+                  hereBox:hb, k:2}).forEach(c => {
+      const anchorX = c.flip ? c.cx + c.CW - c.BAR/2 : c.cx + c.BAR/2;
+      x.save(); x.setLineDash([4,8]); x.strokeStyle = CSSV('--ink-4'); x.lineWidth = 2;
+      x.beginPath(); x.moveTo(c.px, c.sy + 12); x.lineTo(anchorX, c.cy); x.stroke(); x.restore();
+      x.beginPath(); x.arc(c.px, c.sy, 9, 0, 7); x.fillStyle = CSSV('--accent'); x.fill();
+      x.lineWidth = 4; x.strokeStyle = CSSV('--ground'); x.stroke();
+      x.fillStyle = CSSV('--raised'); rr(x, c.cx, c.cy, c.CW, c.ch, 14); x.fill();
+      x.strokeStyle = CSSV('--rule-2'); x.lineWidth = 2; x.stroke();
+      x.fillStyle = CSSV('--accent');
+      x.fillRect(c.flip ? c.cx + c.CW - c.BAR : c.cx, c.cy, c.BAR, c.ch);
+      const tx = c.cx + c.PAD + (c.flip ? 0 : c.BAR);
+      x.textAlign = 'left';
+      LS(x,'1.4px'); x.font = `500 20px ${M_}`; x.fillStyle = CSSV('--accent');
+      x.fillText(c.head, tx, c.cy + c.PAD + 18);
+      LS(x,'0px'); x.font = `400 25px ${B_}`; x.fillStyle = CSSV('--ink');
+      c.lines.forEach((ln,i) => x.fillText(ln, tx, c.cy + c.PAD + 18 + 32 + c.LH*i));
+      posterQuotes++;
+    });
+  }
+  if (state.pins && posterQuotes){
+    LS(x,'7.5px'); x.font = `500 30px ${M_}`; x.fillStyle = CSSV('--accent');
+    x.globalAlpha = .85; x.textAlign = 'right';
+    x.fillText(QUOTE_SOURCE.toUpperCase(), R - 8, B - 24);
+    const w = x.measureText(QUOTE_SOURCE.toUpperCase()).width;
+    x.fillRect(R - 8 - w - 36, B - 24 - 18, 18, 18);
+    x.globalAlpha = 1; x.textAlign = 'left'; LS(x,'0px');
+  }
+  drawSummaryBlock(x, P, 1530, vis, W - P*2, 46);   /* ends 1884 of 1960 */
+  return c;
+}
+/* the category roll-up, drawn the way the sheet has always shown it */
+/* The card: title block, then the page's own chart rasterised at 2x, then the
+   summary. The chart is not redrawn here - it is the same SVG the page shows,
+   so the two cannot drift apart. */
+async function posterTimeline(){
+  const W = 2400;
+  const vis = shown();
+  /* Render the SVG SMALL and blow it up, so type lands at card scale rather
+     than screen scale. At 2x the page's 18px score labels came out ~36px on a
+     2400px card, against ~40px on the old hand-tuned one, and the whole plot
+     sat smaller. 2.22x lands the page's type at the old card's sizes:
+     18px score labels -> 40px, 12.5px labels -> 28px, 13.5px ticks -> 30px. */
+  const SCALE = W/CHART_W;               /* full-bleed: the chart reaches the edge */
+  const img = await rasterizeTimeline(CHART_W, Math.round(CHART_W*0.47), SCALE);
+  if (!img) return posterTimelineCanvas();          /* fonts unavailable */
+  const H = 296 + img.height + 60;                  /* card fits the content */
+  const {c, x, P} = baseCanvas(W, H, 'FSD Progress Tracker',
+    'Weighted score across ' + F.length + ' criteria');
+  if (!vis.length) return c;
+  x.drawImage(img, 0, 296, img.width, img.height);
+  return c;
+}
+
+function drawSummaryBlock(x, X0, Y0, vis, WIDTH, RH){
+  const TG = state.target ? 1 : 0, nc = vis.length + TG;
+  RH = RH || 42; WIDTH = WIDTH || 1500;
+  const FS = Math.round(RH*0.56);
+  /* Size the label column to the longest label, the way the page's table does.
+     A fixed split left ~440px of dead air between the names and the cells. */
+  x.font = `700 ${FS+7}px ${D_}`;
+  const widest = Math.max(...C.map(c2 => x.measureText(c2.short.toUpperCase()).width),
+                          x.measureText('OVERALL').width);
+  const NAME = Math.min(WIDTH * 0.42, Math.ceil(widest) + 44);
+  const CW = Math.floor((WIDTH - NAME) / nc);
+  const CX = i => X0 + NAME + i*CW, RIGHT = X0 + NAME + nc*CW;
+  x.textAlign = 'left';
+  LS(x,'3px'); x.font = `500 ${Math.round(FS*0.62)}px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.fillText('WEIGHTED SCORE', X0, Y0 - 8); LS(x,'0px');
+  x.textAlign = 'center';
+  vis.forEach((v,i) => {
+    x.font = `500 ${FS-2}px ${B_}`; x.fillStyle = '#ffffff';
+    x.fillText(vname(v), CX(i) + CW/2, Y0 - 32);
+    x.font = `400 ${Math.round(FS*0.70)}px ${M_}`; x.fillStyle = CSSV('--ink-2');
+    x.fillText(fmtDate(v.t), CX(i) + CW/2, Y0 - 8);
+  });
+  if (TG){ x.font = `500 ${FS-2}px ${B_}`; x.fillStyle = CSSV('--thresh');
+    x.fillText('Target', CX(vis.length) + CW/2, Y0 - 32); }
+  let y = Y0 + 4;
+  const row = (label, get, tgt, big) => {
+    x.textAlign = 'left'; LS(x,'2px');
+    x.font = `700 ${big ? FS+7 : FS+2}px ${D_}`; x.fillStyle = big ? '#ffffff' : CSSV('--ink-2');
+    x.fillText(label.toUpperCase(), X0, y + RH*0.72); LS(x,'0px');
+    vis.forEach((v,i) => { const sc = get(v.id), col = scoreColor(sc);
+      x.fillStyle = col; x.fillRect(CX(i) + 1, y + 1, CW - 2, RH - 2);
+      x.fillStyle = cellInk(col); x.textAlign = 'center';
+      x.font = `${big ? 700 : 600} ${big ? FS+4 : FS}px ${M_}`;
+      x.fillText(sc.toFixed(1), CX(i) + CW/2, y + RH*0.72); });
+    if (TG){ x.fillStyle = CSSV('--panel-2'); x.fillRect(CX(vis.length) + 1, y + 1, CW - 2, RH - 2);
+      x.fillStyle = CSSV('--thresh'); x.textAlign = 'center';
+      x.font = `${big ? 700 : 500} ${big ? FS+4 : FS}px ${M_}`;
+      x.fillText(tgt.toFixed(1), CX(vis.length) + CW/2, y + RH*0.72); }
+    y += RH + 1;
+  };
+  C.forEach(cat => row(cat.short, vid => catScore(vid, cat.id), threshOf(f => f.cat === cat.id), false));
+  y += 10;
+  x.strokeStyle = CSSV('--ink-2'); x.lineWidth = 3;
+  x.beginPath(); x.moveTo(X0, y); x.lineTo(RIGHT, y); x.stroke();
+  y += 12;
+  row('Overall', overall, T_ALL, true);
+  x.textAlign = 'left';
+  return y;
+}
+/* A 9:16 portrait card: title, the whole grid, the total, and the key \u2014
+   sized so all of it lands inside the frame instead of overflowing it. */
+function posterMatrix(){
+  const W = 1350, H = 2400, P = 48;
+  const vis = shown(), TG = state.target ? 1 : 0, nc = vis.length + TG;
+  const RAILW = 40, GUT = 10;
+  const avail = W - P*2 - RAILW - GUT;
+  const CW = Math.max(58, Math.min(104, Math.floor((avail - 330)/Math.max(1,nc))));
+  const NAME = avail - CW*nc;
+
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = CSSV('--ground'); x.fillRect(0, 0, W, H);
+
+  LS(x,'4px'); x.font = `500 19px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.fillText('\u{1D54F}@EDGECASE411   INDEPENDENT FSD SURVEY', P, P + 22);
+  LS(x,'1px'); x.font = `700 62px ${D_}`; x.fillStyle = CSSV('--ink');
+  x.fillText('FSD PROGRESS TRACKER', P, P + 84);
+  LS(x,'0px'); x.font = `400 21px ${B_}`; x.fillStyle = CSSV('--ink-2');
+  x.fillText(F.length + ' criteria scored every major release since 2023', P, P + 118);
+  x.textAlign = 'right';
+  x.font = `500 17px ${M_}`; x.fillStyle = CSSV('--ink-3');
+  x.fillText('WEIGHTED  ' + vname(latest).toUpperCase(), W - P, P + 34);
+  x.font = `700 62px ${D_}`; x.fillStyle = CSSV('--ink');
+  x.fillText(overall(latest.id).toFixed(1), W - P, P + 96);
+  x.textAlign = 'left';
+
+  const X0 = P, RX = X0, NX = X0 + RAILW + GUT, CX = i => NX + NAME + i*CW;
+  const RIGHT = NX + NAME + nc*CW;
+  if (state.watermark) watermark(x, P, P + 258, 104, .07);
+  let y = P + 300;
+
+  /* rotated release headers \u2014 version only; dates live in the summary view */
+  const HF = `500 ${Math.min(24, CW*0.23)}px ${B_}`;
+  vis.forEach((v,i) => { x.save();
+    x.translate(CX(i) + diagOffset(vname(v), HF, CW, 45), y - 14); x.rotate(-45*Math.PI/180);
+    x.font = HF; x.fillStyle = '#ffffff';
+    x.textAlign = 'left'; x.fillText(vname(v), 0, 0); x.restore(); });
+  if (TG){ x.save();
+    x.translate(CX(vis.length) + diagOffset('Target', HF, CW, 45), y - 14); x.rotate(-45*Math.PI/180);
+    x.font = HF; x.fillStyle = CSSV('--thresh');
+    x.textAlign = 'left'; x.fillText('Target', 0, 0); x.restore(); }
+
+  const KEYH = 250, TOTH = 78;
+  const RH = Math.floor((H - P - KEYH - TOTH - y - (C.length+1)*10) / F.length);
+  const FS = Math.min(23, RH*0.52), NFS = Math.min(22, RH*0.50);
+
+  C.forEach(cat => {
+    const fs = F.filter(f => f.cat === cat.id).sort((a,b) => a.order - b.order);
+    const top = y;
+    fs.forEach(f => {
+      x.font = `400 ${NFS}px ${B_}`; x.fillStyle = CSSV('--ink-2'); x.textAlign = 'left';
+      let nm = f.name; while (x.measureText(nm).width > NAME - 22) nm = nm.slice(0,-2);
+      x.fillText(nm + (nm === f.name ? '' : '\u2026'), NX, y + RH*0.70);
+      vis.forEach((v,i) => { const sc = f.scores[v.id];
+        x.fillStyle = sc == null ? CSSV('--panel-2') : scoreColor(sc);
+        x.fillRect(CX(i) + 0.75, y + 0.75, CW - 1.5, RH - 1.5);
+        if (sc != null){ x.fillStyle = cellInk(scoreColor(sc)); x.textAlign = 'center';
+          x.font = `500 ${FS}px ${M_}`;
+          x.fillText(sc % 1 ? sc.toFixed(1) : sc, CX(i) + CW/2, y + RH*0.71); } });
+      if (TG){ x.fillStyle = CSSV('--panel-2'); x.fillRect(CX(vis.length) + 0.75, y + 0.75, CW - 1.5, RH - 1.5);
+        if (f.thresh != null){ x.fillStyle = CSSV('--thresh'); x.textAlign = 'center';
+          x.font = `500 ${FS}px ${M_}`; x.fillText(f.thresh, CX(vis.length) + CW/2, y + RH*0.71); } }
+      y += RH;
+    });
+    /* vertical rail, the way the sheet groups them \u2014 no colour, just structure */
+    x.fillStyle = CSSV('--panel-2'); rr(x, RX, top + 2, RAILW, (y - top) - 4, 5); x.fill();
+    x.save(); x.translate(RX + RAILW/2, (top + y)/2); x.rotate(-Math.PI/2);
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffffff';
+    LS(x,'3px'); x.font = `500 21px ${D_}`;
+    x.fillText(cat.rail, 0, 0);
+    LS(x,'0px'); x.restore(); x.textBaseline = 'alphabetic';
+    y += 5;                                    /* gap, then the grey rule */
+    x.strokeStyle = CSSV('--rule-2'); x.lineWidth = 1;
+    x.beginPath(); x.moveTo(NX, y + 0.5); x.lineTo(RIGHT, y + 0.5); x.stroke();
+    y += 5;
+  });
+
+  GEN().forEach((f, i) => {
+    if (i === 0){ y += 5;
+      x.strokeStyle = CSSV('--rule'); x.lineWidth = 1;
+      x.beginPath(); x.moveTo(NX, y + 0.5); x.lineTo(RIGHT, y + 0.5); x.stroke(); y += 5; }
+    x.font = `400 ${NFS}px ${B_}`; x.fillStyle = CSSV('--ink-2'); x.textAlign = 'left';
+    let nm = f.name; while (x.measureText(nm).width > NAME - 22) nm = nm.slice(0,-2);
+    x.fillText(nm + (nm === f.name ? '' : '\u2026'), NX, y + RH*0.70);
+    vis.forEach((v,i2) => { const sc = f.scores[v.id];
+      x.fillStyle = sc == null ? CSSV('--panel-2') : scoreColor(sc);
+      x.fillRect(CX(i2) + 0.75, y + 0.75, CW - 1.5, RH - 1.5);
+      if (sc != null){ x.fillStyle = cellInk(scoreColor(sc)); x.textAlign = 'center';
+        x.font = `500 ${FS}px ${M_}`;
+        x.fillText(sc % 1 ? sc.toFixed(1) : sc, CX(i2) + CW/2, y + RH*0.71); } });
+    if (TG){ x.fillStyle = CSSV('--panel-2'); x.fillRect(CX(vis.length) + 0.75, y + 0.75, CW - 1.5, RH - 1.5);
+      if (f.thresh != null){ x.fillStyle = CSSV('--thresh'); x.textAlign = 'center';
+        x.font = `500 ${FS}px ${M_}`; x.fillText(f.thresh, CX(vis.length) + CW/2, y + RH*0.71); } }
+    y += RH;
+  });
+
+  y += 20;
+  x.strokeStyle = CSSV('--ink-2'); x.lineWidth = 2.5;
+  x.beginPath(); x.moveTo(NX, y); x.lineTo(RIGHT, y); x.stroke();
+  y += 14;
+  LS(x,'3px'); x.textAlign = 'left'; x.font = `700 26px ${D_}`; x.fillStyle = '#ffffff';
+  x.fillText('WEIGHTED AVERAGE', NX, y + 30); LS(x,'0px');
+  vis.forEach((v,i) => { const sc = overall(v.id), col = scoreColor(sc);
+    x.fillStyle = col; x.fillRect(CX(i) + 1.5, y + 2, CW - 3, 40);
+    x.fillStyle = cellInk(col); x.textAlign = 'center';
+    x.font = `700 ${Math.min(28, CW*0.29)}px ${M_}`;
+    x.fillText(sc.toFixed(1), CX(i) + CW/2, y + 31); });
+  if (TG){ x.fillStyle = CSSV('--panel-2'); x.fillRect(CX(vis.length) + 1.5, y + 2, CW - 3, 40);
+    x.fillStyle = CSSV('--thresh'); x.textAlign = 'center';
+    x.font = `700 ${Math.min(28, CW*0.29)}px ${M_}`;
+    x.fillText(T_ALL.toFixed(1), CX(vis.length) + CW/2, y + 31); }
+
+  drawKey(x, NX, H - 252, 0.92);
+  return c;
+}
+function posterGap(){
+  const W = 2400, H = 1350;
+  const {c, x, P} = baseCanvas(W, H, "What's left before robotaxi",
+    'Each category today against the score it needs to reach');
+  if (state.watermark) watermark(x, P, P + 236, 96, .07);
+  const L = P + 540, R = W - P - 250;
+  let y = 330; const px = s => L + (s-1)/9*(R-L);
+  C.forEach(cat => {
+    const cur = catScore(latest.id, cat.id), th = threshOf(f => f.cat === cat.id), g = th - cur;
+    x.textAlign = 'left'; LS(x,'2px'); x.font = `700 36px ${D_}`; x.fillStyle = CSSV('--ink');
+    x.fillText(cat.short.toUpperCase(), P, y + 34); LS(x,'0px');
+    x.font = `400 21px ${M_}`; x.fillStyle = CSSV('--ink-4');
+    x.fillText(cat.count + ' criteria', P, y + 66);
+    x.fillStyle = CSSV('--panel-2'); rr(x, L, y, R-L, 58, 9); x.fill();
+    const gr = x.createLinearGradient(L, 0, Math.max(L+8, px(cur)), 0);
+    for (let i = 0; i <= 10; i++) gr.addColorStop(i/10, rampAt(1 + (cur-1)*i/10));
+    x.fillStyle = gr; rr(x, L, y, Math.max(8, px(cur)-L), 58, 9); x.fill();
+    x.fillStyle = CSSV('--thresh'); x.fillRect(px(th) - 3, y - 9, 6, 76);
+    x.textAlign = 'right'; x.font = `700 40px ${M_}`;
+    x.fillStyle = g > .05 ? CSSV('--ink') : CSSV('--thresh');
+    x.fillText(g > .05 ? sign(g) : 'met', W - P, y + 32);
+    x.font = `400 23px ${M_}`; x.fillStyle = CSSV('--ink-3');
+    x.fillText(cur.toFixed(1) + ' / ' + th.toFixed(1), W - P, y + 66);
+    y += 128;
+  });
+  x.textAlign = 'left'; x.font = `400 24px ${B_}`; x.fillStyle = CSSV('--ink-3');
+  wrapText(x, 'Scale runs 1 (never works) to 10 (perfect). The green marker is the score that category needs to reach for unsupervised operation; the bar is where it stands on ' + latest.label + '.', P, H - 130, W - P*2, 34);
+  return c;
+}
+let SAVE = null, LAST = null;
+(async function initSave(){
+  if (window.claude && typeof claude.use === 'function'){
+    let dl = null; try { dl = await claude.use('downloads'); } catch(e){}
+    if (dl) SAVE = async (n, cv) => dl.save({filename:n, data: await new Promise(r => cv.toBlob(r,'image/png'))});
+  } else {
+    SAVE = async (n, cv) => { const a = document.createElement('a');
+      a.href = cv.toDataURL('image/png'); a.download = n;
+      document.body.append(a); a.click(); a.remove(); };
+  }
+  $('#po-dl').hidden = !SAVE;
+})();
+async function poster(kind){
+  if (document.fonts){
+    await document.fonts.ready;
+    try { await document.fonts.load("400 100px 'Nanum Brush Script'"); } catch(e){}
+  }
+  const c = await ({timeline:posterTimeline, matrix:posterMatrix, gap:posterGap})[kind]();
+  LAST = {c, name:'fsd-tracker-' + kind + '-' + latest.label.replace(/[^\w.]/g,'') + '.png'};
+  $('#po-img').src = c.toDataURL('image/png');
+  $('#po-dl').hidden = !SAVE;
+  $('#po-note').innerHTML = `<b>${c.width} \u00d7 ${c.height}</b> \u2014 ${SAVE ? 'save it below, or ' : ''}right-click (long-press on mobile) the image and choose <b>Save image</b>. Shows the releases you have selected.`;
+  $('#poster').classList.add('on');
+}
+$('#dl-timeline').addEventListener('click', () => poster('timeline'));
+$('#dl-matrix').addEventListener('click', () => poster('matrix'));
+$('#dl-gap').addEventListener('click', () => poster('gap'));
+$('#po-close').addEventListener('click', () => $('#poster').classList.remove('on'));
+$('#poster').addEventListener('click', e => { if (e.target.id === 'poster') $('#poster').classList.remove('on'); });
+$('#po-dl').addEventListener('click', async () => {
+  if (!SAVE || !LAST) return;
+  const b = $('#po-dl'), was = b.textContent;
+  b.textContent = 'Saving...'; b.disabled = true;
+  try { await SAVE(LAST.name, LAST.c); b.textContent = 'Saved'; }
+  catch (e){ b.textContent = e && e.code === 'declined' ? 'Cancelled' : 'Unavailable'; }
+  setTimeout(() => { b.textContent = was; b.disabled = false; }, 2200);
+});
+</script>
+</body>
+</html>
