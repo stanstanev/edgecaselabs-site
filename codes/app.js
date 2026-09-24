@@ -97,6 +97,7 @@ function render() {
 function renderInstall() {
   const el = clone("tpl-install");
   for (const n of el.querySelectorAll('[data-role="browser"]')) n.textContent = browserName();
+  q(el, "not-safari").hidden = browserName() === "Safari";
   $app.append(el);
   el.querySelector('[data-action="skip-install"]').addEventListener("click", () => { installSkipped = true; render(); });
 }
