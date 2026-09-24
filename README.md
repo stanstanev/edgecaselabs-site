@@ -12,6 +12,8 @@ camcut/index.html — CamCut product page
 privacy.html      — Privacy Policy
 terms.html        — Terms of Service
 support.html      — Support + FAQ
+codes/            — CamCut Codes promo-code wallet (copied from the camcut-promo-wallet repo by
+                    its tools/publish_to_site.sh; edit it there, not here)
 ```
 
 ## Local preview

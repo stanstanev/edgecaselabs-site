@@ -1,0 +1,16 @@
+{
+  "redirects": [
+    { "source": "/codes", "destination": "/codes/", "permanent": true }
+  ],
+  "headers": [
+    {
+      "source": "/codes/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ]
+}

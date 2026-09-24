@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CamCut Codes">
+  <title>CamCut Codes</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <p class="loading">Loading…</p>
+  </main>
+
+  <!-- ===== Setup ===== -->
+  <template id="tpl-setup-codes">
+    <section class="screen setup">
+      <header class="setup-head">
+        <p class="eyebrow">Step 1 of 3</p>
+        <h1>Import Apple Codes</h1>
+        <p class="muted">Choose the promo-code file you downloaded from App Store Connect (.txt or .csv), or paste the codes. Everything stays on this phone.</p>
+      </header>
+      <label class="btn btn-primary file-btn">
+        Choose Code File
+        <input type="file" accept=".txt,.csv,text/plain,text/csv" data-role="file" hidden>
+      </label>
+      <details class="paste">
+        <summary>Paste codes instead</summary>
+        <textarea data-role="paste" rows="6" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="One code per line"></textarea>
+        <button class="btn btn-secondary" data-action="use-paste" type="button">Use Pasted Codes</button>
+      </details>
+      <div class="column-pick" data-role="column-pick" hidden>
+        <label for="column-select">Which column has the codes?</label>
+        <select id="column-select" data-role="column-select"></select>
+      </div>
+      <div class="preview" data-role="preview" hidden></div>
+      <button class="btn btn-primary" data-action="save-codes" type="button" hidden>Save Codes</button>
+    </section>
+  </template>
+
+  <template id="tpl-setup-expiration">
+    <section class="screen setup">
+      <header class="setup-head">
+        <p class="eyebrow">Step 2 of 3</p>
+        <h1>Expiration Date</h1>
+        <p class="muted">Enter the exact expiration date shown for this batch in <b>App Store Connect → Promo Codes → History</b>. Codes expire at 11:59 P.M. PT on that date.</p>
+      </header>
+      <input type="date" class="field" data-role="expires" required>
+      <p class="warn" data-role="expires-warn" hidden></p>
+      <button class="btn btn-primary" data-action="save-expiration" type="button">Continue</button>
+      <button class="btn btn-quiet" data-action="back-to-codes" type="button">Start over with a different file</button>
+    </section>
+  </template>
+
+  <template id="tpl-setup-terms">
+    <section class="screen setup">
+      <header class="setup-head">
+        <p class="eyebrow">Step 3 of 3</p>
+        <h1>Apple Holder Terms</h1>
+        <p class="muted">Copy Apple's localized <b>Holder Terms &amp; Conditions</b> from <b>Promo Codes → History</b> and paste them exactly. Every code you show must come with these terms.</p>
+      </header>
+      <label class="field-label" for="terms-locale">Language / storefront</label>
+      <input id="terms-locale" class="field" data-role="locale" placeholder="e.g. English — United States" autocomplete="off">
+      <label class="field-label" for="terms-text">Holder Terms (exact text)</label>
+      <textarea id="terms-text" class="field" data-role="terms" rows="8" spellcheck="false" placeholder="Paste Apple's Holder Terms here"></textarea>
+      <label class="btn btn-secondary file-btn small">
+        Or load terms from a .txt file
+        <input type="file" accept=".txt,text/plain" data-role="terms-file" hidden>
+      </label>
+      <label class="field-label" for="terms-summary">Short summary shown under the QR</label>
+      <textarea id="terms-summary" class="field" data-role="summary" rows="4" spellcheck="false"></textarea>
+      <p class="hint">Use the same language as the Holder Terms. <code>{date}</code> becomes the expiration date.</p>
+      <button class="btn btn-primary" data-action="save-terms" type="button">Save &amp; Start</button>
+      <button class="btn btn-quiet" data-action="cancel-terms" type="button" hidden>Cancel</button>
+    </section>
+  </template>
+
+  <!-- ===== Wallet ===== -->
+  <template id="tpl-wallet">
+    <section class="screen wallet">
+      <header class="wallet-head">
+        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut App Promo</p>
+        <button class="icon-btn" data-action="menu" type="button" aria-label="Menu">•••</button>
+      </header>
+      <p class="banner danger" data-role="expired" hidden>This batch has expired. Codes will not redeem.</p>
+      <div class="qr-card">
+        <svg data-role="qr" role="img" aria-label="Promo code QR" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"></svg>
+        <p class="scan-hint">Scan with iPhone Camera</p>
+      </div>
+      <p class="code" data-role="code"></p>
+      <p class="meta"><span data-role="remaining"></span> · <span data-role="expiry"></span></p>
+      <p class="summary" data-role="summary"></p>
+      <button class="btn btn-primary btn-huge" data-action="given" type="button">Given Out — Show Next</button>
+      <div class="row3">
+        <button class="btn btn-secondary" data-action="skip" type="button">Skip</button>
+        <button class="btn btn-secondary" data-action="copy" type="button">Copy Code</button>
+        <button class="btn btn-secondary" data-action="undo" type="button">Undo</button>
+      </div>
+      <button class="btn btn-terms" data-action="terms" type="button">Terms &amp; Expiration</button>
+    </section>
+  </template>
+
+  <template id="tpl-done">
+    <section class="screen done">
+      <header class="wallet-head">
+        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut App Promo</p>
+        <button class="icon-btn" data-action="menu" type="button" aria-label="Menu">•••</button>
+      </header>
+      <div class="done-body">
+        <h1 data-role="done-title">All codes have been given out</h1>
+        <p class="muted" data-role="done-counts"></p>
+        <button class="btn btn-primary" data-action="export" type="button">Export Status</button>
+        <button class="btn btn-secondary" data-action="requeue" type="button" hidden>Show Skipped Codes Again</button>
+        <button class="btn btn-secondary" data-action="undo" type="button">Undo Last</button>
+      </div>
+    </section>
+  </template>
+
+  <!-- ===== Sheets ===== -->
+  <dialog id="sheet-terms" class="sheet">
+    <div class="sheet-body">
+      <h2>Terms &amp; Expiration</h2>
+      <p class="expiry-big" data-role="terms-expiry"></p>
+      <p class="muted" data-role="terms-locale"></p>
+      <div class="terms-text" data-role="terms-text"></div>
+    </div>
+    <form method="dialog" class="sheet-foot"><button class="btn btn-primary">Done</button></form>
+  </dialog>
+
+  <dialog id="sheet-menu" class="sheet">
+    <div class="sheet-body">
+      <h2>Options</h2>
+      <p class="muted" data-role="menu-counts"></p>
+      <button class="btn btn-secondary" data-action="export" type="button">Export Status</button>
+      <button class="btn btn-secondary" data-action="edit-terms" type="button">Edit Expiration &amp; Terms</button>
+      <button class="btn btn-secondary" data-action="rules" type="button">Apple Promo Code Rules</button>
+      <button class="btn btn-danger" data-action="erase" type="button">Erase All Codes</button>
+      <p class="hint">Apple can't tell this page whether a code was redeemed. Tap “Given Out” yourself after each scan.</p>
+      <p class="hint">Codes are stored only in this browser on this phone. There is no backup or sync. Export Status keeps a copy.</p>
+    </div>
+    <form method="dialog" class="sheet-foot"><button class="btn btn-quiet">Close</button></form>
+  </dialog>
+
+  <dialog id="sheet-rules" class="sheet">
+    <div class="sheet-body">
+      <h2>Apple Promo Code Rules</h2>
+      <ul class="rules">
+        <li>Each code works once.</li>
+        <li>Codes expire at 11:59 P.M. PT on the date shown in App Store Connect History.</li>
+        <li>Only give codes to people in regions where CamCut is available.</li>
+        <li>Every code must come with Apple's localized Holder Terms and its expiration date. That includes screenshots, printouts, and messages.</li>
+        <li>Codes can't be sold or exchanged for anything.</li>
+        <li>Don't use codes to give inappropriate content to minors.</li>
+        <li>People who redeem a promo code can't rate or review the app on the App Store.</li>
+        <li>Apple allows up to 100 codes per app version.</li>
+      </ul>
+    </div>
+    <form method="dialog" class="sheet-foot"><button class="btn btn-primary">Done</button></form>
+  </dialog>
+
+  <dialog id="sheet-erase" class="sheet">
+    <div class="sheet-body">
+      <h2>Erase All Codes?</h2>
+      <p>This deletes every code, its status, the expiration date, and the terms from this phone. It can't be undone. Export Status first if you want a record.</p>
+      <label class="field-label" for="erase-confirm">Type ERASE to confirm</label>
+      <input id="erase-confirm" class="field" data-role="erase-input" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <button class="btn btn-danger" data-action="erase-confirm" type="button" disabled>Erase Everything</button>
+    </div>
+    <form method="dialog" class="sheet-foot"><button class="btn btn-quiet">Cancel</button></form>
+  </dialog>
+
+  <dialog id="sheet-brightness" class="sheet">
+    <div class="sheet-body">
+      <h2>Turn brightness all the way up</h2>
+      <p>QR codes scan much faster on a bright screen. Swipe down from the top-right corner and drag brightness to max. This page can't change it for you.</p>
+      <p class="muted">Tip: turn off Auto-Lock in Settings → Display &amp; Brightness if the screen dims during the event.</p>
+    </div>
+    <form method="dialog" class="sheet-foot"><button class="btn btn-primary">Got It</button></form>
+  </dialog>
+
+  <div class="toast" data-role="toast" role="status" hidden></div>
+  <noscript><p class="loading">CamCut Codes needs JavaScript.</p></noscript>
+</body>
+</html>
