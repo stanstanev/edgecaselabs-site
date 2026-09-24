@@ -13,9 +13,19 @@ let editingTerms = false;
 let pendingImport = null; // { inspection, sourceName, text }
 let installSkipped = false;
 
-// iPhone/iPad Safari tab (not the Home Screen app). navigator.standalone only exists on iOS.
-function inIosSafariTab() {
-  return navigator.standalone === false && /iPhone|iPad|iPod/.test(navigator.userAgent);
+// A browser tab on iPhone/iPad (Safari, Chrome, ...), not the Home Screen app.
+function inIosBrowserTab() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const standalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  return ios && !standalone;
+}
+
+function browserName() {
+  const ua = navigator.userAgent;
+  if (/CriOS/.test(ua)) return "Chrome";
+  if (/FxiOS/.test(ua)) return "Firefox";
+  if (/EdgiOS/.test(ua)) return "Edge";
+  return "Safari";
 }
 
 // ---------- Storage ----------
@@ -76,7 +86,7 @@ function readFile(file) {
 function render() {
   const step = editingTerms ? "terms" : setupStep(state);
   $app.replaceChildren();
-  if (step === "codes" && !installSkipped && inIosSafariTab()) return renderInstall();
+  if (step === "codes" && !installSkipped && inIosBrowserTab()) return renderInstall();
   if (step === "codes") return renderCodesStep();
   if (step === "expiration") return renderExpirationStep();
   if (step === "terms") return renderTermsStep();
@@ -86,6 +96,7 @@ function render() {
 
 function renderInstall() {
   const el = clone("tpl-install");
+  for (const n of el.querySelectorAll('[data-role="browser"]')) n.textContent = browserName();
   $app.append(el);
   el.querySelector('[data-action="skip-install"]').addEventListener("click", () => { installSkipped = true; render(); });
 }
