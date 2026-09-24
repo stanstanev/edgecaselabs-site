@@ -1,6 +1,6 @@
 // Offline cache for the static app shell only. Never caches or sees promo codes:
 // the app makes no requests that contain them.
-const VERSION = "camcut-codes-v5";
+const VERSION = "camcut-codes-v6";
 const SHELL = [
   "./",
   "index.html",

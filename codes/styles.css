@@ -99,6 +99,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-
 textarea.field { resize: vertical; line-height: 1.4; }
 input[type="date"].field { min-height: var(--tap); -webkit-appearance: none; appearance: none; }
 .field:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.found { margin: 0; color: #86efac; font-size: 15px; font-weight: 600; }
 .field-label { font-weight: 600; font-size: 15px; margin-top: 6px; }
 
 .paste summary { color: var(--text-dim); padding: 10px 0; cursor: pointer; font-size: 16px; }

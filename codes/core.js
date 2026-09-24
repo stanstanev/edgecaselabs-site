@@ -36,12 +36,12 @@ export function parseCsv(text) {
 }
 
 function normalizeHeader(cell) {
-  return cell.toLowerCase().replace(/[\s-]+/g, "_").replace(/^﻿/, "");
+  return cell.toLowerCase().replace(/[\s-]+/g, "_").replace(/^\ufeff/, "");
 }
 
 /** Normalize one raw cell into a candidate code: strip all whitespace, uppercase. */
 export function normalizeCode(raw) {
-  return String(raw).replace(/[\s ​﻿]+/g, "").toUpperCase();
+  return String(raw).replace(/[\s\u00a0\u200b\ufeff]+/g, "").toUpperCase();
 }
 
 /**
@@ -49,7 +49,7 @@ export function normalizeCode(raw) {
  * Returns { kind: "list" } or { kind: "columns", headerIndex, columnCount, hasHeader, rows }.
  */
 export function inspectText(text) {
-  const clean = String(text).replace(/^﻿/, "");
+  const clean = String(text).replace(/^\ufeff/, "");
   const rows = parseCsv(clean).filter((r) => r.some((c) => c !== ""));
   const columnCount = rows.reduce((m, r) => Math.max(m, r.length), 0);
   if (rows.length === 0) return { kind: "list", rows: [], columnCount: 0, headerIndex: -1, hasHeader: false };
@@ -107,7 +107,7 @@ export function emptyState() {
   return {
     version: 1,
     codes: [], // { code, status: "unused" | "given_out" | "skipped", at: ISO string | null }
-    batch: { expiresOn: "", termsLocale: "", terms: "", summary: "", sourceName: "", importedAt: "" },
+    batch: { expiresOn: "", expiresAt: "", store: "", termsLocale: "", terms: "", summary: "", sourceName: "", importedAt: "" },
     history: [], // undo stack: [{ label, changes: [{ i, status, at }] }] (previous values)
     brightnessReminderSeen: false,
   };
@@ -182,6 +182,7 @@ export function reviveState(json) {
       .map((c) => ({ code: c.code, status: c.status, at: typeof c.at === "string" ? c.at : null }));
     const batch = { ...base.batch };
     for (const k of Object.keys(batch)) if (typeof s.batch?.[k] === "string") batch[k] = s.batch[k];
+    if (batch.summary === OLD_DEFAULT_SUMMARY || batch.summary === DEFAULT_SUMMARY) batch.summary = "";
     const history = Array.isArray(s.history)
       ? s.history.filter((h) => h && Array.isArray(h.changes) && h.changes.every((c) => c && Number.isInteger(c.i) && c.i >= 0 && c.i < codes.length && STATUSES.includes(c.status)))
       : [];
@@ -223,22 +224,64 @@ export function todayPacific(now = new Date()) {
   return parts; // en-CA formats as YYYY-MM-DD
 }
 
-export function isExpired(expiresOn, now = new Date()) {
-  return Boolean(expiresOn) && todayPacific(now) > expiresOn;
+/** Calendar date (YYYY-MM-DD) of an instant in Pacific Time. */
+export function pacificDateOf(iso) {
+  return todayPacific(new Date(iso));
+}
+
+/**
+ * Read the exact expiry from Apple's promo code terms, e.g.
+ * "Promo Codes expire on 2026-10-22 20:47:00 Etc/GMT". Returns an ISO UTC string or "".
+ */
+export function parseAppleExpiry(text) {
+  const m = /expires?\s+on\s+(\d{4})-(\d{2})-(\d{2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?:Etc\/GMT|GMT|UTC|Z)\b/i.exec(String(text));
+  if (!m) return "";
+  const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4].padStart(2, "0")}:${m[5]}:${m[6] || "00"}Z`;
+  return Number.isNaN(Date.parse(iso)) ? "" : iso;
+}
+
+/** Read the storefront from Apple's terms: "redeemable only on the App Store for United States." */
+export function parseAppleStore(text) {
+  const m = /App Store for ([A-Za-z][A-Za-z .,'()-]{1,60}?)\s*\./.exec(String(text).replace(/\s+/g, " "));
+  return m ? m[1].trim() : "";
+}
+
+/** "October 22, 2026 at 1:47 P.M. PT". Falls back to 11:59 P.M. PT when only a date is known. */
+export function formatExpiry(batch) {
+  if (batch.expiresAt) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles", year: "numeric", month: "long", day: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true,
+    }).formatToParts(new Date(batch.expiresAt)).map((p) => [p.type, p.value]));
+    const ampm = parts.dayPeriod.toUpperCase() === "PM" ? "P.M." : "A.M.";
+    return `${parts.month} ${parts.day}, ${parts.year} at ${parts.hour}:${parts.minute} ${ampm} PT`;
+  }
+  return batch.expiresOn ? `${formatDateLong(batch.expiresOn)} at 11:59 P.M. PT` : "";
+}
+
+export function isExpired(batch, now = new Date()) {
+  if (batch.expiresAt) return now.getTime() >= Date.parse(batch.expiresAt);
+  return Boolean(batch.expiresOn) && todayPacific(now) > batch.expiresOn;
 }
 
 export const DEFAULT_SUMMARY =
+  "Redeemable only on the {store}. Expires {date}. Apple Account required. Not for resale. Full terms apply.";
+
+// Earlier default, which hard-coded 11:59 P.M.; treat a stored copy as "use the current default".
+const OLD_DEFAULT_SUMMARY =
   "Valid only where CamCut is available. Expires {date} at 11:59 P.M. PT. Apple Account required. Not for resale. No cash value. Terms & Conditions apply.";
 
-export function renderSummary(template, expiresOn) {
-  return (template || DEFAULT_SUMMARY).split("{date}").join(formatDateLong(expiresOn));
+export function renderSummary(template, batch) {
+  return (template || DEFAULT_SUMMARY)
+    .split("{date}").join(formatExpiry(batch))
+    .split("{store}").join(batch.store ? `App Store for ${batch.store}` : "App Store");
 }
 
 /** Build the status export as CSV. */
 export function statusCsv(state) {
   const esc = (v) => (/[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const lines = ["code,status,changed_at,expires_on"];
-  for (const c of state.codes) lines.push([c.code, c.status, c.at || "", state.batch.expiresOn].map(esc).join(","));
+  for (const c of state.codes) lines.push([c.code, c.status, c.at || "", state.batch.expiresAt || state.batch.expiresOn].map(esc).join(","));
   return lines.join("\n") + "\n";
 }
 

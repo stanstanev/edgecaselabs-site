@@ -4,7 +4,8 @@
 import {
   STORAGE_KEY, DEFAULT_SUMMARY, emptyState, reviveState, withCodes, setupStep, currentIndex, counts,
   markCurrent, requeueSkipped, undo, inspectText, extractCodes, countBlankLines, guessCodeColumn, redeemUrl, formatCode,
-  formatDateLong, formatDateShort, isExpired, todayPacific, renderSummary, statusCsv, qrPath,
+  formatDateShort, formatExpiry, isExpired, todayPacific, pacificDateOf, parseAppleExpiry, parseAppleStore,
+  renderSummary, statusCsv, qrPath,
 } from "./core.js";
 
 const $app = document.getElementById("app");
@@ -199,7 +200,7 @@ function renderExpirationStep() {
   const check = () => {
     const v = input.value;
     const msgs = [];
-    if (v && isExpired(v)) msgs.push("That date is already past in Pacific Time. These codes won't redeem.");
+    if (v && isExpired({ expiresOn: v })) msgs.push("That date is already past in Pacific Time. These codes won't redeem.");
     if (v) {
       const days = (Date.parse(v) - Date.parse(todayPacific())) / 86400000;
       if (days > 28) msgs.push("That's more than 28 days away. Apple codes expire within 28 days of being requested, so double-check History.");
@@ -211,7 +212,8 @@ function renderExpirationStep() {
   check();
   el.querySelector('[data-action="save-expiration"]').addEventListener("click", () => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.value)) { toast("Enter the expiration date first.", true); return; }
-    save({ ...state, batch: { ...state.batch, expiresOn: input.value } });
+    const keepExact = state.batch.expiresAt && pacificDateOf(state.batch.expiresAt) === input.value;
+    save({ ...state, batch: { ...state.batch, expiresOn: input.value, expiresAt: keepExact ? state.batch.expiresAt : "" } });
     render();
   });
   el.querySelector('[data-action="back-to-codes"]').addEventListener("click", () => {
@@ -230,6 +232,20 @@ function renderTermsStep() {
   locale.value = state.batch.termsLocale;
   terms.value = state.batch.terms;
   summary.value = state.batch.summary || DEFAULT_SUMMARY;
+  const found = q(el, "terms-found");
+  const showFound = () => {
+    const at = parseAppleExpiry(terms.value);
+    const store = parseAppleStore(terms.value);
+    if (!at && !store) { found.hidden = true; return; }
+    const bits = [];
+    if (at) bits.push(`expires ${formatExpiry({ expiresAt: at })}`);
+    if (store) bits.push(`App Store for ${store}`);
+    found.textContent = `Read from Apple's terms: ${bits.join(" · ")}`;
+    found.hidden = false;
+    if (store && !locale.value.trim()) locale.value = `English — ${store}`;
+  };
+  terms.addEventListener("input", showFound);
+  showFound();
 
   if (editingTerms) {
     el.querySelector(".eyebrow").textContent = "Edit";
@@ -253,7 +269,7 @@ function renderTermsStep() {
   termsFile.addEventListener("change", async () => {
     const file = termsFile.files?.[0];
     if (!file) return;
-    try { terms.value = (await readFile(file)).replace(/^﻿/, ""); }
+    try { terms.value = (await readFile(file)).replace(/^\ufeff/, ""); showFound(); }
     catch { toast("Couldn't read that file.", true); }
     termsFile.value = "";
   });
@@ -265,13 +281,18 @@ function renderTermsStep() {
       ...state.batch,
       termsLocale: locale.value.trim(),
       terms: terms.value, // stored exactly as supplied
-      summary: summary.value.trim() || DEFAULT_SUMMARY,
+      summary: summary.value.trim() === DEFAULT_SUMMARY ? "" : summary.value.trim(),
+      store: parseAppleStore(terms.value),
     };
     const editDate = q(el, "edit-expires");
     if (editDate) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(editDate.value)) { toast("Enter the expiration date.", true); return; }
       batch.expiresOn = editDate.value;
+      if (batch.expiresAt && pacificDateOf(batch.expiresAt) !== editDate.value) batch.expiresAt = "";
     }
+    // Apple's own expiry in the terms is authoritative over a typed date.
+    const exact = parseAppleExpiry(terms.value);
+    if (exact) { batch.expiresAt = exact; batch.expiresOn = pacificDateOf(exact); }
     save({ ...state, batch });
     editingTerms = false;
     render();
@@ -296,8 +317,8 @@ function renderWallet() {
   q(el, "code").textContent = formatCode(code);
   q(el, "remaining").textContent = `${plural(c.unused, "code")} remaining`;
   q(el, "expiry").textContent = `Expires ${formatDateShort(state.batch.expiresOn)}`;
-  q(el, "summary").textContent = renderSummary(state.batch.summary, state.batch.expiresOn);
-  q(el, "expired").hidden = !isExpired(state.batch.expiresOn);
+  q(el, "summary").textContent = renderSummary(state.batch.summary, state.batch);
+  q(el, "expired").hidden = !isExpired(state.batch);
   el.querySelector('[data-action="undo"]').disabled = state.history.length === 0;
 
   el.querySelector('[data-action="given"]').addEventListener("click", () => advance("given_out"));
@@ -358,7 +379,7 @@ async function copyCode(code) {
 
 function showTerms() {
   const d = document.getElementById("sheet-terms");
-  q(d, "terms-expiry").textContent = `Expires ${formatDateLong(state.batch.expiresOn)} at 11:59 P.M. PT`;
+  q(d, "terms-expiry").textContent = `Expires ${formatExpiry(state.batch)}`;
   q(d, "terms-locale").textContent = `Holder Terms · ${state.batch.termsLocale}`;
   q(d, "terms-text").textContent = state.batch.terms;
   openSheet("sheet-terms");

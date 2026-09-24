@@ -73,7 +73,7 @@
       <header class="setup-head">
         <p class="eyebrow">Step 2 of 3</p>
         <h1>Expiration Date</h1>
-        <p class="muted">Enter the exact expiration date shown for this batch in <b>App Store Connect → Promo Codes → History</b>. Codes expire at 11:59 P.M. PT on that date.</p>
+        <p class="muted">Codes expire 28 days after you requested them. Enter that date. If Apple's terms (next step) list an exact expiry time, the app uses that instead.</p>
       </header>
       <input type="date" class="field" data-role="expires" required>
       <p class="warn" data-role="expires-warn" hidden></p>
@@ -87,19 +87,20 @@
       <header class="setup-head">
         <p class="eyebrow">Step 3 of 3</p>
         <h1>Apple Holder Terms</h1>
-        <p class="muted">Copy Apple's localized <b>Holder Terms &amp; Conditions</b> from <b>Promo Codes → History</b> and paste them exactly. Every code you show must come with these terms.</p>
+        <p class="muted">Paste Apple's promo code terms exactly as Apple gave them. They start with “Promo Codes expire on…”. Every code you show must come with these terms.</p>
       </header>
       <label class="field-label" for="terms-locale">Language / storefront</label>
       <input id="terms-locale" class="field" data-role="locale" placeholder="e.g. English — United States" autocomplete="off">
       <label class="field-label" for="terms-text">Holder Terms (exact text)</label>
       <textarea id="terms-text" class="field" data-role="terms" rows="8" spellcheck="false" placeholder="Paste Apple's Holder Terms here"></textarea>
+      <p class="found" data-role="terms-found" hidden></p>
       <label class="btn btn-secondary file-btn small">
         Or load terms from a .txt file
         <input type="file" accept=".txt,text/plain" data-role="terms-file" hidden>
       </label>
       <label class="field-label" for="terms-summary">Short summary shown under the QR</label>
       <textarea id="terms-summary" class="field" data-role="summary" rows="4" spellcheck="false"></textarea>
-      <p class="hint">Use the same language as the Holder Terms. <code>{date}</code> becomes the expiration date.</p>
+      <p class="hint">Use the same language as the Holder Terms. <code>{date}</code> becomes the exact expiry and <code>{store}</code> the App Store country.</p>
       <button class="btn btn-primary" data-action="save-terms" type="button">Save &amp; Start</button>
       <button class="btn btn-quiet" data-action="cancel-terms" type="button" hidden>Cancel</button>
     </section>
@@ -176,7 +177,7 @@
       <h2>Apple Promo Code Rules</h2>
       <ul class="rules">
         <li>Each code works once.</li>
-        <li>Codes expire at 11:59 P.M. PT on the date shown in App Store Connect History.</li>
+        <li>Codes expire at the date and time in Apple's terms, 28 days after they were requested.</li>
         <li>Only give codes to people in regions where CamCut is available.</li>
         <li>Every code must come with Apple's localized Holder Terms and its expiration date. That includes screenshots, printouts, and messages.</li>
         <li>Codes can't be sold or exchanged for anything.</li>
