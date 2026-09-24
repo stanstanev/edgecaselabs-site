@@ -466,6 +466,15 @@ window.addEventListener("unhandledrejection", (e) => { e.preventDefault(); });
 // ---------- Offline ----------
 
 if ("serviceWorker" in navigator) {
+  // When a newer version takes over, reload once so the phone shows it right away.
+  // Safe mid-event: every state change is already saved.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 
