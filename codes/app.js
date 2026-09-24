@@ -11,6 +11,12 @@ const $app = document.getElementById("app");
 let state = load();
 let editingTerms = false;
 let pendingImport = null; // { inspection, sourceName, text }
+let installSkipped = false;
+
+// iPhone/iPad Safari tab (not the Home Screen app). navigator.standalone only exists on iOS.
+function inIosSafariTab() {
+  return navigator.standalone === false && /iPhone|iPad|iPod/.test(navigator.userAgent);
+}
 
 // ---------- Storage ----------
 
@@ -70,11 +76,18 @@ function readFile(file) {
 function render() {
   const step = editingTerms ? "terms" : setupStep(state);
   $app.replaceChildren();
+  if (step === "codes" && !installSkipped && inIosSafariTab()) return renderInstall();
   if (step === "codes") return renderCodesStep();
   if (step === "expiration") return renderExpirationStep();
   if (step === "terms") return renderTermsStep();
   if (currentIndex(state) < 0) return renderDone();
   renderWallet();
+}
+
+function renderInstall() {
+  const el = clone("tpl-install");
+  $app.append(el);
+  el.querySelector('[data-action="skip-install"]').addEventListener("click", () => { installSkipped = true; render(); });
 }
 
 function renderCodesStep() {

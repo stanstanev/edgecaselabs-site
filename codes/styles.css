@@ -117,6 +117,14 @@ input[type="date"].field { min-height: var(--tap); -webkit-appearance: none; app
 .preview p + p { margin-top: 6px; }
 .preview-count { font-size: 26px; font-weight: 750; }
 
+.install-steps { margin: 0; padding-left: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 18px; line-height: 1.45; }
+.share-glyph {
+  display: inline-block; width: 14px; height: 16px; vertical-align: -2px;
+  border: 2px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; margin: 0 2px;
+}
+.share-glyph::before { content: ""; position: absolute; left: 4px; top: -8px; width: 2px; height: 12px; background: currentColor; }
+.share-glyph::after { content: ""; position: absolute; left: 1.5px; top: -8px; width: 5px; height: 5px; border-left: 2px solid currentColor; border-top: 2px solid currentColor; transform: rotate(45deg); }
+
 /* ---------- Wallet ---------- */
 .wallet { gap: 10px; }
 .wallet-head { display: flex; align-items: center; justify-content: space-between; }
