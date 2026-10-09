@@ -325,7 +325,6 @@ function renderWallet() {
   el.querySelector('[data-action="skip"]').addEventListener("click", () => advance("skipped"));
   el.querySelector('[data-action="undo"]').addEventListener("click", doUndo);
   el.querySelector('[data-action="copy"]').addEventListener("click", () => copyCode(code));
-  el.querySelector('[data-action="terms"]').addEventListener("click", showTerms);
   el.querySelector('[data-action="menu"]').addEventListener("click", showMenu);
 
   requestWakeLock();
@@ -425,8 +424,9 @@ async function exportStatus() {
   menu.querySelector('[data-action="export"]').addEventListener("click", exportStatus);
   menu.querySelector('[data-action="edit-terms"]').addEventListener("click", () => {
     menu.close();
-    editingTerms = true;
-    render();
+    editingTerms = false;
+    $app.replaceChildren();
+    renderExpirationStep();
     window.scrollTo(0, 0);
   });
   menu.querySelector('[data-action="rules"]').addEventListener("click", () => { menu.close(); openSheet("sheet-rules"); });

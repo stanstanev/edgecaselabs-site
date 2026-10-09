@@ -5,6 +5,7 @@ import qrcode from "./vendor/qrcode.mjs";
 
 export const STORAGE_KEY = "camcut-codes.v1";
 export const REDEEM_BASE = "https://apps.apple.com/redeem?ctx=offercodes&id=6761657634&code=";
+export const CAMPAIGN_EXPIRES_ON = "2026-10-31";
 export const CODE_HEADERS = ["code", "promo_code", "promocode"];
 const STATUSES = ["unused", "given_out", "skipped"];
 const CODE_PATTERN = /^[A-Z0-9]{6,32}$/;
@@ -117,7 +118,7 @@ export function withCodes(state, codes, sourceName, now) {
   return {
     ...state,
     codes: codes.map((code) => ({ code, status: "unused", at: null })),
-    batch: { ...emptyState().batch, kind: "pro_offer", sourceName: sourceName || "", importedAt: now },
+    batch: { ...emptyState().batch, kind: "pro_offer", expiresOn: CAMPAIGN_EXPIRES_ON, sourceName: sourceName || "", importedAt: now },
     history: [],
   };
 }
@@ -135,7 +136,6 @@ export function counts(state) {
 export function setupStep(state) {
   if (state.codes.length === 0) return "codes";
   if (!state.batch.expiresOn) return "expiration";
-  if (!state.batch.termsLocale.trim()) return "terms";
   return "ready";
 }
 
@@ -272,7 +272,7 @@ const OLD_DEFAULT_SUMMARY =
   "Valid only where CamCut is available. Expires {date} at 11:59 P.M. PT. Apple Account required. Not for resale. No cash value. Terms & Conditions apply.";
 
 export function renderSummary(template, batch) {
-  return (template || (batch.kind === "pro_offer" ? "CamCut Pro Lifetime offer. Expires {date}. Eligible Apple Account and storefront required. Terms apply." : DEFAULT_SUMMARY))
+  return (template || (batch.kind === "pro_offer" ? `Expires ${formatDateLong(batch.expiresOn)}.` : DEFAULT_SUMMARY))
     .split("{date}").join(formatExpiry(batch))
     .split("{store}").join(batch.store ? `App Store for ${batch.store}` : "App Store");
 }
