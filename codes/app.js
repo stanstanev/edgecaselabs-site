@@ -200,10 +200,10 @@ function renderExpirationStep() {
   const check = () => {
     const v = input.value;
     const msgs = [];
-    if (v && isExpired({ expiresOn: v })) msgs.push("That date is already past in Pacific Time. These codes won't redeem.");
+    if (v && isExpired({ kind: "pro_offer", expiresOn: v })) msgs.push("That date is already past in Pacific Time. These codes won't redeem.");
     if (v) {
       const days = (Date.parse(v) - Date.parse(todayPacific())) / 86400000;
-      if (days > 28) msgs.push("That's more than 28 days away. Apple codes expire within 28 days of being requested, so double-check History.");
+      if (days > 184) msgs.push("Double-check the expiration date in your Pro offer batch.");
     }
     warn.textContent = msgs.join(" ");
     warn.hidden = msgs.length === 0;
@@ -234,7 +234,7 @@ function renderTermsStep() {
   summary.value = state.batch.summary || DEFAULT_SUMMARY;
   const found = q(el, "terms-found");
   const showFound = () => {
-    const at = parseAppleExpiry(terms.value);
+    const at = state.batch.kind === "pro_offer" ? "" : parseAppleExpiry(terms.value);
     const store = parseAppleStore(terms.value);
     if (!at && !store) { found.hidden = true; return; }
     const bits = [];
@@ -276,7 +276,7 @@ function renderTermsStep() {
 
   el.querySelector('[data-action="save-terms"]').addEventListener("click", () => {
     if (!locale.value.trim()) { toast("Enter the language / storefront.", true); locale.focus(); return; }
-    if (!terms.value.trim()) { toast("Paste Apple's Holder Terms.", true); terms.focus(); return; }
+    if (state.batch.kind !== "pro_offer" && !terms.value.trim()) { toast("Paste Apple's Holder Terms.", true); terms.focus(); return; }
     const batch = {
       ...state.batch,
       termsLocale: locale.value.trim(),
@@ -291,7 +291,7 @@ function renderTermsStep() {
       if (batch.expiresAt && pacificDateOf(batch.expiresAt) !== editDate.value) batch.expiresAt = "";
     }
     // Apple's own expiry in the terms is authoritative over a typed date.
-    const exact = parseAppleExpiry(terms.value);
+    const exact = state.batch.kind === "pro_offer" ? "" : parseAppleExpiry(terms.value);
     if (exact) { batch.expiresAt = exact; batch.expiresOn = pacificDateOf(exact); }
     save({ ...state, batch });
     editingTerms = false;
@@ -497,7 +497,12 @@ if ("serviceWorker" in navigator) {
     reloaded = true;
     location.reload();
   });
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((registration) => {
+    registration.update().catch(() => {});
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") registration.update().catch(() => {});
+    });
+  }).catch(() => {});
 }
 
 render();

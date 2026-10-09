@@ -4,7 +4,7 @@
 import qrcode from "./vendor/qrcode.mjs";
 
 export const STORAGE_KEY = "camcut-codes.v1";
-export const REDEEM_BASE = "https://apps.apple.com/redeem?code=";
+export const REDEEM_BASE = "https://apps.apple.com/redeem?ctx=offercodes&id=6761657634&code=";
 export const CODE_HEADERS = ["code", "promo_code", "promocode"];
 const STATUSES = ["unused", "given_out", "skipped"];
 const CODE_PATTERN = /^[A-Z0-9]{6,32}$/;
@@ -107,7 +107,7 @@ export function emptyState() {
   return {
     version: 1,
     codes: [], // { code, status: "unused" | "given_out" | "skipped", at: ISO string | null }
-    batch: { expiresOn: "", expiresAt: "", store: "", termsLocale: "", terms: "", summary: "", sourceName: "", importedAt: "" },
+    batch: { kind: "pro_offer", expiresOn: "", expiresAt: "", store: "", termsLocale: "", terms: "", summary: "", sourceName: "", importedAt: "" },
     history: [], // undo stack: [{ label, changes: [{ i, status, at }] }] (previous values)
     brightnessReminderSeen: false,
   };
@@ -117,7 +117,7 @@ export function withCodes(state, codes, sourceName, now) {
   return {
     ...state,
     codes: codes.map((code) => ({ code, status: "unused", at: null })),
-    batch: { ...state.batch, sourceName: sourceName || "", importedAt: now },
+    batch: { ...emptyState().batch, kind: "pro_offer", sourceName: sourceName || "", importedAt: now },
     history: [],
   };
 }
@@ -135,7 +135,7 @@ export function counts(state) {
 export function setupStep(state) {
   if (state.codes.length === 0) return "codes";
   if (!state.batch.expiresOn) return "expiration";
-  if (!state.batch.terms.trim() || !state.batch.termsLocale.trim()) return "terms";
+  if (!state.batch.termsLocale.trim()) return "terms";
   return "ready";
 }
 
@@ -256,12 +256,12 @@ export function formatExpiry(batch) {
     const ampm = parts.dayPeriod.toUpperCase() === "PM" ? "P.M." : "A.M.";
     return `${parts.month} ${parts.day}, ${parts.year} at ${parts.hour}:${parts.minute} ${ampm} PT`;
   }
-  return batch.expiresOn ? `${formatDateLong(batch.expiresOn)} at 11:59 P.M. PT` : "";
+  return batch.expiresOn ? `${formatDateLong(batch.expiresOn)} at ${batch.kind === "pro_offer" ? "12:00 A.M." : "11:59 P.M."} PT` : "";
 }
 
 export function isExpired(batch, now = new Date()) {
   if (batch.expiresAt) return now.getTime() >= Date.parse(batch.expiresAt);
-  return Boolean(batch.expiresOn) && todayPacific(now) > batch.expiresOn;
+  return Boolean(batch.expiresOn) && (batch.kind === "pro_offer" ? todayPacific(now) >= batch.expiresOn : todayPacific(now) > batch.expiresOn);
 }
 
 export const DEFAULT_SUMMARY =
@@ -272,7 +272,7 @@ const OLD_DEFAULT_SUMMARY =
   "Valid only where CamCut is available. Expires {date} at 11:59 P.M. PT. Apple Account required. Not for resale. No cash value. Terms & Conditions apply.";
 
 export function renderSummary(template, batch) {
-  return (template || DEFAULT_SUMMARY)
+  return (template || (batch.kind === "pro_offer" ? "CamCut Pro Lifetime offer. Expires {date}. Eligible Apple Account and storefront required. Terms apply." : DEFAULT_SUMMARY))
     .split("{date}").join(formatExpiry(batch))
     .split("{store}").join(batch.store ? `App Store for ${batch.store}` : "App Store");
 }

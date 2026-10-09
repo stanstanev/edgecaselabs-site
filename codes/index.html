@@ -47,8 +47,8 @@
     <section class="screen setup">
       <header class="setup-head">
         <p class="eyebrow">Step 1 of 3</p>
-        <h1>Import Apple Codes</h1>
-        <p class="muted">Choose the promo-code file you downloaded from App Store Connect (.txt or .csv), or paste the codes. Everything stays on this phone.</p>
+        <h1>Import Pro Offer Codes</h1>
+        <p class="muted">Choose the file from App Store Connect → In-App Purchases → CamCut Pro Lifetime → Offer Codes (.txt or .csv). Everything stays on this phone.</p>
       </header>
       <label class="btn btn-primary file-btn">
         Choose Code File
@@ -73,7 +73,7 @@
       <header class="setup-head">
         <p class="eyebrow">Step 2 of 3</p>
         <h1>Expiration Date</h1>
-        <p class="muted">Codes expire 28 days after you requested them. Enter that date. If Apple's terms (next step) list an exact expiry time, the app uses that instead.</p>
+        <p class="muted">Enter the exact expiration date selected for this Pro offer batch in App Store Connect. Offer codes expire at 12:00 A.M. Pacific at the start of that date.</p>
       </header>
       <input type="date" class="field" data-role="expires" required>
       <p class="warn" data-role="expires-warn" hidden></p>
@@ -86,13 +86,13 @@
     <section class="screen setup">
       <header class="setup-head">
         <p class="eyebrow">Step 3 of 3</p>
-        <h1>Apple Holder Terms</h1>
-        <p class="muted">Paste Apple's promo code terms exactly as Apple gave them. They start with “Promo Codes expire on…”. Every code you show must come with these terms.</p>
+        <h1>Offer Details</h1>
+        <p class="muted">Enter the language and eligible App Store regions from this Pro offer. You may attach the applicable offer terms below.</p>
       </header>
       <label class="field-label" for="terms-locale">Language / storefront</label>
       <input id="terms-locale" class="field" data-role="locale" placeholder="e.g. English — United States" autocomplete="off">
-      <label class="field-label" for="terms-text">Holder Terms (exact text)</label>
-      <textarea id="terms-text" class="field" data-role="terms" rows="8" spellcheck="false" placeholder="Paste Apple's Holder Terms here"></textarea>
+      <label class="field-label" for="terms-text">Offer Terms (optional, exact text)</label>
+      <textarea id="terms-text" class="field" data-role="terms" rows="8" spellcheck="false" placeholder="Paste applicable offer terms here, if supplied"></textarea>
       <p class="found" data-role="terms-found" hidden></p>
       <label class="btn btn-secondary file-btn small">
         Or load terms from a .txt file
@@ -110,7 +110,7 @@
   <template id="tpl-wallet">
     <section class="screen wallet">
       <header class="wallet-head">
-        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut App Promo</p>
+        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut Pro Lifetime</p>
         <button class="icon-btn" data-action="menu" type="button" aria-label="Menu">•••</button>
       </header>
       <p class="banner danger" data-role="expired" hidden>This batch has expired. Codes will not redeem.</p>
@@ -134,7 +134,7 @@
   <template id="tpl-done">
     <section class="screen done">
       <header class="wallet-head">
-        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut App Promo</p>
+        <p class="brand"><span class="dot" aria-hidden="true"></span>CamCut Pro Lifetime</p>
         <button class="icon-btn" data-action="menu" type="button" aria-label="Menu">•••</button>
       </header>
       <div class="done-body">
@@ -160,11 +160,11 @@
 
   <dialog id="sheet-menu" class="sheet">
     <div class="sheet-body">
-      <h2>Options</h2>
+      <h2>Options</h2><p class="hint">CamCut Codes v7 · Pro offer codes</p>
       <p class="muted" data-role="menu-counts"></p>
       <button class="btn btn-secondary" data-action="export" type="button">Export Status</button>
       <button class="btn btn-secondary" data-action="edit-terms" type="button">Edit Expiration &amp; Terms</button>
-      <button class="btn btn-secondary" data-action="rules" type="button">Apple Promo Code Rules</button>
+      <button class="btn btn-secondary" data-action="rules" type="button">Pro Offer Code Details</button>
       <button class="btn btn-danger" data-action="erase" type="button">Erase All Codes</button>
       <p class="hint">Apple can't tell this page whether a code was redeemed. Tap “Given Out” yourself after each scan.</p>
       <p class="hint">Codes are stored only in this browser on this phone. There is no backup or sync. Export Status keeps a copy.</p>
@@ -174,16 +174,16 @@
 
   <dialog id="sheet-rules" class="sheet">
     <div class="sheet-body">
-      <h2>Apple Promo Code Rules</h2>
+      <h2>Pro Offer Code Details</h2>
       <ul class="rules">
         <li>Each code works once.</li>
-        <li>Codes expire at the date and time in Apple's terms, 28 days after they were requested.</li>
-        <li>Only give codes to people in regions where CamCut is available.</li>
-        <li>Every code must come with Apple's localized Holder Terms and its expiration date. That includes screenshots, printouts, and messages.</li>
+        <li>Offer codes expire at 12:00 A.M. Pacific on the expiration date selected for the batch.</li>
+        <li>Recipients must meet the customer eligibility and App Store region requirements selected for the offer.</li>
+        <li>Share the applicable offer details and expiration date with recipients.</li>
         <li>Codes can't be sold or exchanged for anything.</li>
         <li>Don't use codes to give inappropriate content to minors.</li>
-        <li>People who redeem a promo code can't rate or review the app on the App Store.</li>
-        <li>Apple allows up to 100 codes per app version.</li>
+        <li>These codes redeem CamCut Pro Lifetime. App-download promo codes do not unlock Pro.</li>
+        <li>After Apple confirms redemption, open CamCut. If Pro is still locked, use Restore Purchases with the same Apple Account.</li>
       </ul>
     </div>
     <form method="dialog" class="sheet-foot"><button class="btn btn-primary">Done</button></form>
