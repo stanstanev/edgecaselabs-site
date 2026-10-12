@@ -25,16 +25,21 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--ink); }
+/* App-shell layout: the page itself never scrolls (only .scroller does), so mobile browsers
+   never collapse their toolbars and the Play/Restart bar never moves on screen. */
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg); color: var(--ink); }
 body {
+  display: flex;
+  flex-direction: column;
   font: 16px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
+.scroller { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 main {
   max-width: 560px;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 16px calc(104px + env(safe-area-inset-bottom));
+  padding: max(12px, env(safe-area-inset-top)) 16px 20px;
   display: grid;
   gap: 14px;
 }
@@ -55,10 +60,10 @@ header { display: flex; align-items: center; gap: 10px; justify-content: space-b
 
 .now { cursor: pointer; }   /* tapping the big measure display restarts */
 
-/* Play/Restart stay pinned to the bottom of the screen, always in the same place
+/* Play/Restart sit below the scrolling area, always in the same place on screen
    (so an iPhone Voice Control custom tap gesture can find them). */
 .transport {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  flex: none;
   background: var(--bg); border-top: 1px solid var(--line);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
 }

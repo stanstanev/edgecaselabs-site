@@ -11,9 +11,10 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>Play Along</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
+<div class="scroller">
 <main>
   <header>
     <select id="song" aria-label="Song"></select>
@@ -92,6 +93,7 @@
     </div>
   </section>
 </main>
+</div>
 <nav class="transport" aria-label="Playback">
   <div class="transport-inner">
     <button id="restart" class="secondary" aria-label="Restart" disabled><span id="restart-label">⟲ Restart</span></button>
@@ -99,6 +101,6 @@
   </div>
 </nav>
 <video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
