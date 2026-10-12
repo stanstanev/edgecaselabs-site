@@ -91,6 +91,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
 .seg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .seg button { height: 46px; border-radius: 12px; border: 2px solid transparent; background: var(--btn); font-weight: 700; font-variant-numeric: tabular-nums; }
 .seg button.on { background: var(--accent); color: var(--accent-ink); }
+.seg-4 { grid-template-columns: repeat(2, 1fr); }
+.sub-head { padding-top: 10px; border-top: 1px solid var(--line); }
 
 .switch { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .switch input { appearance: none; -webkit-appearance: none; width: 44px; height: 26px; border-radius: 13px; background: var(--line); position: relative; margin: 0; transition: background .15s; flex: none; }

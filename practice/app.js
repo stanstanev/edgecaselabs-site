@@ -11,14 +11,23 @@ const DEFAULT_VELOCITY = 80;
 
 // ---------- audio graph ----------
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-const master = ctx.createDynamicsCompressor();   // keeps stacked chords from clipping
-master.threshold.value = -10;
-master.ratio.value = 4;
-master.connect(ctx.destination);
+// Piano: hands -> gentle compressor (keeps stacked chords from clipping) -> speakers.
+const pianoComp = ctx.createDynamicsCompressor();
+pianoComp.threshold.value = -10;
+pianoComp.ratio.value = 4;
+pianoComp.connect(ctx.destination);
+// Click: its own path, so it isn't squashed by the piano's compressor. A soft clipper lets the
+// volume go well past full scale; the tick just gets denser instead of distorting harshly.
+const clickPre = ctx.createGain();
+clickPre.gain.value = 0.25;
+const clickShaper = ctx.createWaveShaper();
+clickShaper.curve = Float32Array.from({ length: 2048 }, (_, i) => Math.tanh(4 * (i / 1023.5 - 1)));
+clickShaper.oversample = '2x';
+clickPre.connect(clickShaper).connect(ctx.destination);
 const bus = {};
-for (const name of ['RH', 'LH', 'click', 'countin']) {
+for (const name of ['RH', 'LH', 'click', 'countin', 'preview']) {
   bus[name] = ctx.createGain();
-  bus[name].connect(master);
+  bus[name].connect(name === 'RH' || name === 'LH' ? pianoComp : clickPre);
 }
 const samples = {};       // midi -> { buf, offset }
 const active = new Set(); // sounding/scheduled nodes, so Stop can silence them
@@ -29,7 +38,7 @@ const S = Object.assign({
   song: null,
   rhOn: true, rhVol: 75,
   lhOn: true, lhVol: 75,
-  clickOn: false, clickVol: 70,
+  clickOn: false, clickVol: 70, clickSound: 'metronome', clickAccent: false,
   countInBeats: 4, loopCountIn: true, pedal: true,
   perSong: {},
 }, readStore());
@@ -121,17 +130,81 @@ function playNote(midi, when, dur, hand, vel) {
   src.stop(when + dur + 0.5);
   track(src, g);
 }
-function playClick(when, accent, dest) {
-  const osc = ctx.createOscillator();
+const noiseBuf = (() => {
+  const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+})();
+function hitEnvelope(when, peak, decay) {
   const g = ctx.createGain();
-  osc.frequency.value = accent ? 1568 : 1046;
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(accent ? 0.9 : 0.55, when + 0.002);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(peak, when + 0.001);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+  return g;
+}
+function noiseHit(when, dest, filterType, freq, q, peak, decay) {
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = filterType;
+  f.frequency.value = freq;
+  f.Q.value = q;
+  const g = hitEnvelope(when, peak, decay);
+  src.connect(f).connect(g).connect(dest);
+  src.start(when);
+  src.stop(when + decay + 0.02);
+  track(src, g);
+}
+function toneHit(when, dest, wave, freq, peak, decay) {
+  const osc = ctx.createOscillator();
+  osc.type = wave;
+  osc.frequency.value = freq;
+  const g = hitEnvelope(when, peak, decay);
   osc.connect(g).connect(dest);
   osc.start(when);
-  osc.stop(when + 0.07);
+  osc.stop(when + decay + 0.02);
   track(osc, g);
+}
+const CLICK_SOUNDS = {
+  // Mechanical metronome: a bright, very short wooden tick.
+  metronome(when, accent, dest) {
+    noiseHit(when, dest, 'bandpass', accent ? 4300 : 3100, 1.6, 4.5, 0.045);
+    toneHit(when, dest, 'triangle', accent ? 2600 : 1900, 1.2, 0.025);
+  },
+  // Woodblock: a pitched, hollow knock.
+  woodblock(when, accent, dest) {
+    const f = accent ? 1250 : 880;
+    toneHit(when, dest, 'sine', f, 1.0, 0.08);
+    toneHit(when, dest, 'sine', f * 2.76, 0.3, 0.03);
+    noiseHit(when, dest, 'bandpass', f * 2, 1.5, 0.8, 0.01);
+  },
+  // Cowbell: two square waves through a band-pass, like a drum machine's.
+  cowbell(when, accent, dest) {
+    const k = accent ? 1.26 : 1;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 2400 * k;
+    f.Q.value = 0.8;
+    const g = hitEnvelope(when, 1.6, 0.22);
+    f.connect(g).connect(dest);
+    for (const hz of [540 * k, 800 * k]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = hz;
+      osc.connect(f);
+      osc.start(when);
+      osc.stop(when + 0.24);
+      track(osc, g);
+    }
+  },
+  // Electronic beep.
+  beep(when, accent, dest) {
+    toneHit(when, dest, 'triangle', accent ? 1760 : 1320, 1.2, 0.07);
+  },
+};
+function playClick(when, downbeat, dest) {
+  (CLICK_SOUNDS[S.clickSound] || CLICK_SOUNDS.metronome)(when, S.clickAccent && downbeat, dest);
 }
 function silenceAll() {
   const t = ctx.currentTime;
@@ -146,12 +219,14 @@ function silenceAll() {
 
 // ---------- mix ----------
 const volGain = (v) => Math.pow(v / 100, 2) * 1.6;
+const clickGain = (v) => Math.pow(v / 100, 2) * 5;   // much more headroom than the piano
 function applyMix(instant) {
   const set = (node, value) => instant ? (node.gain.value = value) : node.gain.setTargetAtTime(value, ctx.currentTime, 0.03);
   set(bus.RH, S.rhOn ? volGain(S.rhVol) : 0);
   set(bus.LH, S.lhOn ? volGain(S.lhVol) : 0);
-  set(bus.click, S.clickOn ? volGain(S.clickVol) : 0);
-  set(bus.countin, volGain(Math.max(S.clickVol, 40)));  // count-in stays audible even with the click off
+  set(bus.click, S.clickOn ? clickGain(S.clickVol) : 0);
+  set(bus.countin, clickGain(Math.max(S.clickVol, 30)));  // count-in stays audible even with the click off
+  set(bus.preview, clickGain(S.clickVol));
 }
 
 // ---------- iPhone audio quirks ----------
@@ -439,7 +514,7 @@ function bindControls() {
   $('tempo-slider').addEventListener('input', (e) => setTempo(e.target.value));
   $('tempo-reset').addEventListener('click', () => setTempo(song.tempo));
 
-  const toggles = { 'rh-on': 'rhOn', 'lh-on': 'lhOn', 'click-on': 'clickOn', 'loop-countin': 'loopCountIn', pedal: 'pedal' };
+  const toggles = { 'rh-on': 'rhOn', 'lh-on': 'lhOn', 'click-on': 'clickOn', 'click-accent': 'clickAccent', 'loop-countin': 'loopCountIn', pedal: 'pedal' };
   for (const [id, key] of Object.entries(toggles)) {
     $(id).checked = S[key];
     $(id).addEventListener('change', (e) => { S[key] = e.target.checked; save(); applyMix(); });
@@ -449,6 +524,26 @@ function bindControls() {
     $(id).value = S[key];
     $(id).addEventListener('input', (e) => { S[key] = Number(e.target.value); save(); applyMix(); });
   }
+
+  // Let the player hear the click while choosing its sound or volume.
+  const previewClick = () => {
+    unlockAudio();
+    applyMix(true);
+    const t = ctx.currentTime + 0.05;
+    for (let i = 0; i < 2; i++) playClick(t + i * 0.45, i === 0, bus.preview);
+  };
+  const renderClickSound = () => document.querySelectorAll('#click-sound button').forEach((b) =>
+    b.classList.toggle('on', b.dataset.sound === S.clickSound));
+  $('click-sound').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    S.clickSound = b.dataset.sound;
+    save();
+    renderClickSound();
+    if (!P.playing) previewClick();
+  });
+  $('click-vol').addEventListener('change', () => { if (!P.playing) previewClick(); });
+  renderClickSound();
 
   const renderCountIn = () => document.querySelectorAll('#countin-beats button').forEach((b) =>
     b.classList.toggle('on', Number(b.dataset.beats) === S.countInBeats));

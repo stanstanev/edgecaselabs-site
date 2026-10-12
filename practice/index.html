@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>Play Along</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <main>
@@ -41,9 +41,21 @@
   </section>
 
   <section class="card">
-    <div class="row-head">
+    <h2>Click</h2>
+    <div class="mix">
+      <label class="switch"><input type="checkbox" id="click-on"><span>Click</span></label>
+      <input id="click-vol" type="range" min="0" max="100" aria-label="Click volume">
+    </div>
+    <div class="seg seg-4" id="click-sound" role="group" aria-label="Click sound">
+      <button data-sound="metronome">Metronome</button>
+      <button data-sound="woodblock">Woodblock</button>
+      <button data-sound="cowbell">Cowbell</button>
+      <button data-sound="beep">Beep</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="click-accent"><span>Accent beat 1</span></label>
+    <div class="row-head sub-head">
       <h2>Count-in</h2>
-      <span class="hint">clicks before the music starts</span>
+      <span class="hint">beats before the music starts</span>
     </div>
     <div class="seg" id="countin-beats" role="group" aria-label="Count-in length in beats">
       <button data-beats="0">Off</button>
@@ -78,8 +90,6 @@
       <input id="rh-vol" type="range" min="0" max="100" aria-label="Right hand volume">
       <label class="switch"><input type="checkbox" id="lh-on" checked><span>Left hand</span></label>
       <input id="lh-vol" type="range" min="0" max="100" aria-label="Left hand volume">
-      <label class="switch"><input type="checkbox" id="click-on"><span>Click</span></label>
-      <input id="click-vol" type="range" min="0" max="100" aria-label="Click volume">
     </div>
     <div class="options">
       <label class="switch"><input type="checkbox" id="pedal" checked><span>Pedal</span></label>
@@ -87,6 +97,6 @@
   </section>
 </main>
 <video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
