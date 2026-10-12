@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>Play Along</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <main>
@@ -26,10 +26,6 @@
     <div id="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   </section>
 
-  <section class="transport">
-    <button id="restart" class="secondary" disabled><span id="restart-label">⟲ Restart</span></button>
-    <button id="play" class="primary" disabled><span id="play-label">▶ Play</span></button>
-  </section>
 
   <section class="map">
     <div class="row-head">
@@ -96,7 +92,13 @@
     </div>
   </section>
 </main>
+<nav class="transport" aria-label="Playback">
+  <div class="transport-inner">
+    <button id="restart" class="secondary" aria-label="Restart" disabled><span id="restart-label">⟲ Restart</span></button>
+    <button id="play" class="primary" aria-label="Play" disabled><span id="play-label">▶ Play</span></button>
+  </div>
+</nav>
 <video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

@@ -472,6 +472,7 @@ function renderTransport() {
   $('play').disabled = !ready;
   $('play').classList.toggle('stop', P.playing);
   $('play-label').textContent = P.playing ? '■ Stop' : `▶ Play from ${st.start}`;
+  $('play').setAttribute('aria-label', P.playing ? 'Stop' : 'Play');
   const again = P.lastStart || st.start;
   $('restart').disabled = !ready;
   $('restart-label').textContent = `⟲ Restart ${again}`;
@@ -489,13 +490,30 @@ function bindControls() {
     const b = e.target.closest('.m');
     if (b) onMeasureTap(Number(b.dataset.m));
   });
-  $('play').addEventListener('click', () => (P.playing ? stop(true) : start(songState().start)));
-  $('restart').addEventListener('click', () => {
+  const ready = () => !$('play').disabled;
+  const playOrStop = () => (P.playing ? stop(true) : start(songState().start));
+  const restart = () => {
     const st = songState();
     start(st.loop ? st.start : (P.lastStart || st.start));
-  });
+  };
+  $('play').addEventListener('click', playOrStop);
+  $('restart').addEventListener('click', restart);
+  document.querySelector('.now').addEventListener('click', () => { if (ready()) restart(); });
+
+  // Bluetooth page-turner pedals and keyboards: left pedal (or ←/↑/PageUp/R) restarts,
+  // right pedal (or →/↓/PageDown/Space/Enter) plays or stops.
+  const RESTART_KEYS = ['ArrowLeft', 'ArrowUp', 'PageUp', 'KeyR'];
+  const PLAY_KEYS = ['ArrowRight', 'ArrowDown', 'PageDown', 'Space', 'Enter', 'NumpadEnter'];
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && e.target.tagName !== 'INPUT') { e.preventDefault(); $('play').click(); }
+    const t = e.target;
+    if (t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['checkbox', 'range'].includes(t.type))) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const isRestart = RESTART_KEYS.includes(e.code), isPlay = PLAY_KEYS.includes(e.code);
+    if (!isRestart && !isPlay) return;
+    e.preventDefault();             // keep the key from also moving a slider or pressing a focused button
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    if (e.repeat || !ready()) return;
+    if (isRestart) restart(); else playOrStop();
   });
 
   $('loop').addEventListener('change', (e) => {
