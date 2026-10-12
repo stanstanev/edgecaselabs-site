@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Play Along">
+<meta name="theme-color" content="#1c202c">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>Play Along</title>
+<link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+<main>
+  <header>
+    <select id="song" aria-label="Song"></select>
+    <span id="status">Loading…</span>
+  </header>
+
+  <section class="now" aria-live="polite">
+    <div id="now-main">Ready</div>
+    <div id="now-sub">Tap a measure to choose where to start</div>
+    <div id="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  </section>
+
+  <section class="transport">
+    <button id="restart" class="secondary" disabled><span id="restart-label">⟲ Restart</span></button>
+    <button id="play" class="primary" disabled><span id="play-label">▶ Play</span></button>
+  </section>
+
+  <section class="map">
+    <div class="row-head">
+      <h2>Measures</h2>
+      <label class="switch"><input type="checkbox" id="loop"><span>Loop</span></label>
+    </div>
+    <div id="pages"></div>
+    <p id="map-hint" class="hint"></p>
+  </section>
+
+  <section class="card">
+    <div class="row-head">
+      <h2>Count-in</h2>
+      <span class="hint">clicks before the music starts</span>
+    </div>
+    <div class="seg" id="countin-beats" role="group" aria-label="Count-in length in beats">
+      <button data-beats="0">Off</button>
+      <button data-beats="1">1</button>
+      <button data-beats="2">2</button>
+      <button data-beats="3">3</button>
+      <button data-beats="4">4</button>
+      <button data-beats="8">8</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="loop-countin" checked><span>Count in again every time the loop repeats</span></label>
+  </section>
+
+  <section class="card">
+    <div class="row-head">
+      <h2>Tempo</h2>
+      <button id="tempo-reset" class="link">Original <span id="tempo-orig"></span></button>
+    </div>
+    <div class="tempo">
+      <button class="step" data-step="-5" aria-label="Slower by 5">−5</button>
+      <button class="step" data-step="-1" aria-label="Slower by 1">−1</button>
+      <input id="tempo" type="number" inputmode="numeric" min="20" max="160" aria-label="Tempo in BPM">
+      <button class="step" data-step="1" aria-label="Faster by 1">+1</button>
+      <button class="step" data-step="5" aria-label="Faster by 5">+5</button>
+    </div>
+    <input id="tempo-slider" type="range" min="20" max="120" step="1" aria-label="Tempo slider">
+  </section>
+
+  <section class="card">
+    <h2>Mix</h2>
+    <div class="mix">
+      <label class="switch"><input type="checkbox" id="rh-on" checked><span>Right hand</span></label>
+      <input id="rh-vol" type="range" min="0" max="100" aria-label="Right hand volume">
+      <label class="switch"><input type="checkbox" id="lh-on" checked><span>Left hand</span></label>
+      <input id="lh-vol" type="range" min="0" max="100" aria-label="Left hand volume">
+      <label class="switch"><input type="checkbox" id="click-on"><span>Click</span></label>
+      <input id="click-vol" type="range" min="0" max="100" aria-label="Click volume">
+    </div>
+    <div class="options">
+      <label class="switch"><input type="checkbox" id="pedal" checked><span>Pedal</span></label>
+    </div>
+  </section>
+</main>
+<video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
+<script src="app.js?v=4"></script>
+</body>
+</html>
