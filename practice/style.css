@@ -42,7 +42,7 @@ body {
 }
 .scroller { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 main {
-  max-width: 560px;
+  max-width: 1100px;   /* use the whole width of a tablet; phones are narrower anyway */
   margin: 0 auto;
   padding: max(12px, env(safe-area-inset-top)) 16px 20px;
   display: grid;
@@ -72,7 +72,7 @@ header { display: flex; align-items: center; gap: 10px; justify-content: space-b
   background: var(--bg); border-top: 1px solid var(--line);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
 }
-.transport-inner { max-width: 528px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.transport-inner { max-width: 1068px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
 .transport button { height: 64px; border-radius: 16px; border: 0; font-size: 19px; font-weight: 700; }
 .primary { background: var(--accent); color: var(--accent-ink); }
 .primary.stop { background: var(--ink); color: var(--bg); }
@@ -92,14 +92,19 @@ button:disabled { opacity: .45; }
 .seg-view button { height: 36px; padding: 0 16px; font-size: 15px; }
 
 /* Sheet view: engraved pages on paper; measure boxes sit behind the notes */
-.sheet { display: grid; gap: 12px; }
-.sheet-page { background: var(--paper); color: #1d1f24; border-radius: 10px; padding: 4px 2px; }
+.sheet { display: grid; gap: 10px; }
+.map.sheet-mode { padding: 10px 4px 12px; }            /* let the music run nearly edge to edge */
+.map.sheet-mode .row-head, .map.sheet-mode .hint { padding: 0 8px; }
+.sheet-page { background: var(--paper); color: #1d1f24; border-radius: 6px; }
 .sheet-page svg { display: block; width: 100%; height: auto; }
 /* !important: Verovio's own embedded styles (#page-id rect {stroke}) would otherwise win */
 .mbox { fill: transparent; stroke: none !important; }
 .mbox.inloop { fill: rgba(217, 130, 43, .14); }
 .mbox.sel { stroke: var(--accent) !important; stroke-width: 2px; vector-effect: non-scaling-stroke; }
-.mbox.cur { fill: rgba(217, 130, 43, .28); }
+.mbox.cur { fill: rgba(217, 130, 43, .34); }
+/* While playing, only the moving "current measure" is marked; the start outline returns on Stop. */
+body.is-playing .mbox.sel { stroke: none !important; }
+body.is-playing .m.sel:not(.cur) { border-color: transparent; }
 .sheet g.note.playing, .sheet g.note.playing * { color: var(--note-lit); fill: var(--note-lit); }
 
 .m {

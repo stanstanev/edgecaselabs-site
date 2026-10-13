@@ -407,6 +407,7 @@ function showPosition(mark) {
   setBeatDots(mark.beat, mark.countIn);
   if (mark.countIn) {
     lightNotes(null);
+    document.querySelectorAll('.cur').forEach((b) => b.classList.remove('cur'));
     $('now-main').textContent = `Count-in ${mark.beat}`;
     $('now-sub').textContent = `Measure ${mark.next} next · ${where(mark.next)}`;
     return;
@@ -493,6 +494,7 @@ async function setView(view) {
   document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
   $('pages').hidden = view !== 'measures';
   $('sheet').hidden = view !== 'sheet';
+  document.querySelector('.map').classList.toggle('sheet-mode', view === 'sheet');
   if (view === 'sheet') await loadSheet();   // measured after it is visible, so sizes are real
 }
 
@@ -628,6 +630,7 @@ function onMeasureTap(m) {
 
 function renderTransport() {
   const st = songState();
+  document.body.classList.toggle('is-playing', P.playing);
   const ready = !!song && Object.keys(samples).length > 0;
   $('play').disabled = !ready;
   $('play').classList.toggle('stop', P.playing);
