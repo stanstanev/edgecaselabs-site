@@ -52,21 +52,51 @@ function partBus(part) {   // band instruments get their own volume control on f
 let sampleSets = {};      // set name -> { notes, level, oneShot, bufs: {midi: {buf, offset}} }
 const active = new Set(); // sounding/scheduled nodes, so Stop can silence them
 
+// ---------- volume in dB ----------
+// Every volume slider runs in 1 dB steps; 0 dB is the balanced mix and the bottom means off.
+const DB_OFF = -31;
+const dbToGain = (db) => (db <= DB_OFF ? 0 : Math.pow(10, db / 20));
+const dbText = (db) => (db <= DB_OFF ? 'Off' : `${db > 0 ? '+' : db < 0 ? '−' : ''}${Math.abs(db)} dB`);
+const UNITY = 0.9;          // part-bus gain at 0 dB (the level the mix was balanced at)
+const CLICK_UNITY = 2.45;   // click-bus gain at 0 dB
+
 // ---------- settings (remembered on this device) ----------
 const STORE = 'playalong:v1';
 const S = Object.assign({
   song: null,
-  rhOn: true, rhVol: 75,
-  lhOn: true, lhVol: 75,
-  clickOn: false, clickVol: 70, clickSound: 'metronome', clickAccent: false,
+  rhOn: true, rhDb: 0,
+  lhOn: true, lhDb: 0,
+  clickOn: false, clickDb: 0, clickSound: 'metronome', clickAccent: false,
   countInBeats: 4, loopCountIn: true, pedal: true, view: 'measures',
   band: 'full',      // band arrangement: off / simple / moving / full
-  masterVol: 75, bandVol: 75,
-  inst: {},          // band instrument -> { on, vol }
+  masterDb: 0, bandDb: 0,
+  inst: {},          // band instrument -> { on, db }
   perSong: {},
-}, readStore());
+}, migrateVolumes(readStore()));
 function readStore() {
   try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; }
+}
+// Earlier versions stored volumes as 0-100 slider positions; convert them to the same loudness in dB.
+function migrateVolumes(o) {
+  const toDb = (gain, unity, max = 6) =>
+    Math.max(DB_OFF, Math.min(max, Math.round(20 * Math.log10(Math.max(gain, 1e-6) / unity))));
+  const part = (v) => toDb(Math.pow(v / 100, 2) * 1.6, UNITY);
+  const group = (v) => toDb(Math.pow(v / 75, 2), 1);
+  const convert = { rhVol: ['rhDb', part], lhVol: ['lhDb', part], masterVol: ['masterDb', group], bandVol: ['bandDb', group],
+    clickVol: ['clickDb', (v) => toDb(Math.pow(v / 100, 2) * 5, CLICK_UNITY, 12)] };
+  for (const [old, [key, fn]] of Object.entries(convert)) {
+    if (o[old] !== undefined) {
+      if (o[key] === undefined) o[key] = fn(o[old]);
+      delete o[old];
+    }
+  }
+  for (const st of Object.values(o.inst || {})) {
+    if (st.vol !== undefined) {
+      if (st.db === undefined) st.db = part(st.vol);
+      delete st.vol;
+    }
+  }
+  return o;
 }
 function save() {
   try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { /* private mode etc. */ }
@@ -283,25 +313,22 @@ function silenceAll() {
 }
 
 // ---------- mix ----------
-const volGain = (v) => Math.pow(v / 100, 2) * 1.6;
-const instState = (id) => (S.inst[id] ||= { on: true, vol: 75 });
-const groupGain = (v) => Math.pow(v / 75, 2);         // 75 = as mixed; up to about +5 dB
-const clickGain = (v) => Math.pow(v / 100, 2) * 5;   // much more headroom than the piano
+const instState = (id) => (S.inst[id] ||= { on: true, db: 0 });
 function applyMix(instant) {
   const set = (node, value) => instant ? (node.gain.value = value) : node.gain.setTargetAtTime(value, ctx.currentTime, 0.03);
-  set(bus.RH, S.rhOn ? volGain(S.rhVol) : 0);
-  set(bus.LH, S.lhOn ? volGain(S.lhVol) : 0);
-  set(bus.click, S.clickOn ? clickGain(S.clickVol) : 0);
-  set(bus.countin, clickGain(Math.max(S.clickVol, 30)));  // count-in stays audible even with the click off
-  set(bus.preview, clickGain(S.clickVol));
-  set(musicMaster, groupGain(S.masterVol));
-  set(clickPre, 0.25 * groupGain(S.masterVol));
-  set(bandGroup, groupGain(S.bandVol));
+  set(bus.RH, S.rhOn ? UNITY * dbToGain(S.rhDb) : 0);
+  set(bus.LH, S.lhOn ? UNITY * dbToGain(S.lhDb) : 0);
+  set(bus.click, S.clickOn ? CLICK_UNITY * dbToGain(S.clickDb) : 0);
+  set(bus.countin, CLICK_UNITY * dbToGain(Math.max(S.clickDb, -12)));  // count-in stays audible even with the click off
+  set(bus.preview, CLICK_UNITY * dbToGain(S.clickDb));
+  set(musicMaster, dbToGain(S.masterDb));
+  set(clickPre, 0.25 * dbToGain(S.masterDb));
+  set(bandGroup, dbToGain(S.bandDb));
   const version = song && bandVersion();
   for (const inst of song?.band?.instruments || []) {
     if (!bus[inst.id]) continue;
     const st = instState(inst.id);
-    set(bus[inst.id], st.on && version?.parts[inst.id] ? volGain(st.vol) : 0);
+    set(bus[inst.id], st.on && version?.parts[inst.id] ? UNITY * dbToGain(st.db) : 0);
   }
 }
 
@@ -716,6 +743,24 @@ function renderTransport() {
   $('restart-label').textContent = `⟲ Restart ${again}`;
 }
 
+// A dB slider with its readout; tapping the readout snaps back to 0 dB.
+function bindDb(slider, readout, get, put, max = 6) {
+  slider.min = DB_OFF;
+  slider.max = max;
+  slider.step = 1;
+  const show = () => { slider.value = get(); readout.textContent = dbText(get()); };
+  slider.addEventListener('input', () => { put(Number(slider.value)); readout.textContent = dbText(Number(slider.value)); save(); applyMix(); });
+  readout.addEventListener('click', () => { put(0); show(); save(); applyMix(); });
+  readout.setAttribute('aria-label', 'Reset to 0 dB');
+  show();
+}
+function dbReadout() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'db';
+  return b;
+}
+
 // ---------- band ----------
 function renderBand() {
   const card = $('band-card');
@@ -738,14 +783,13 @@ function renderBand() {
     toggle.addEventListener('change', () => { st.on = toggle.checked; save(); applyMix(); });
     const slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = 0;
-    slider.max = 100;
     slider.id = `inst-${inst.id}-vol`;
-    slider.value = st.vol;
     slider.disabled = !inVersion;
     slider.setAttribute('aria-label', `${inst.name} volume`);
-    slider.addEventListener('input', () => { st.vol = Number(slider.value); save(); applyMix(); });
-    box.append(label, slider);
+    const readout = dbReadout();
+    readout.disabled = !inVersion;
+    bindDb(slider, readout, () => st.db, (v) => { st.db = v; });
+    box.append(label, slider, readout);
     if (!inVersion && firstVersion && S.band !== 'off') {
       const last = song.band.versions[song.band.versions.length - 1];
       const when = firstVersion === last ? `${last.name} only` : `from ${firstVersion.name}`;
@@ -834,10 +878,11 @@ function bindControls() {
     $(id).checked = S[key];
     $(id).addEventListener('change', (e) => { S[key] = e.target.checked; save(); applyMix(); });
   }
-  const sliders = { 'rh-vol': 'rhVol', 'lh-vol': 'lhVol', 'click-vol': 'clickVol', 'master-vol': 'masterVol', 'band-vol': 'bandVol' };
-  for (const [id, key] of Object.entries(sliders)) {
-    $(id).value = S[key];
-    $(id).addEventListener('input', (e) => { S[key] = Number(e.target.value); save(); applyMix(); });
+  const sliders = { 'rh-vol': ['rhDb', 6], 'lh-vol': ['lhDb', 6], 'click-vol': ['clickDb', 12], 'master-vol': ['masterDb', 6], 'band-vol': ['bandDb', 6] };
+  for (const [id, [key, max]] of Object.entries(sliders)) {
+    const readout = dbReadout();
+    $(id).after(readout);
+    bindDb($(id), readout, () => S[key], (v) => { S[key] = v; }, max);
   }
 
   // Let the player hear the click while choosing its sound or volume.

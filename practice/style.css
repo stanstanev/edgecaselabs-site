@@ -124,7 +124,9 @@ body.is-playing .m.sel:not(.cur) { border-color: transparent; }
 .link { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 14px; padding: 4px 0; }
 
 input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
-.mix { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+.mix { display: grid; grid-template-columns: auto 1fr 4.6em; gap: 6px 12px; align-items: center; }
+.db { border: 0; background: var(--btn); border-radius: 8px; height: 30px; font-size: 13px; font-weight: 700;
+      font-variant-numeric: tabular-nums; padding: 0 6px; }
 .options { display: flex; flex-wrap: wrap; gap: 8px 18px; padding-top: 4px; border-top: 1px solid var(--line); }
 .options .switch { padding-top: 8px; }
 
