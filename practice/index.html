@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>Play Along</title>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 <div class="scroller">
@@ -95,11 +95,19 @@
       <button data-band="moving">Moving</button>
       <button data-band="full">Full</button>
     </div>
+    <div class="mix group-row">
+      <span class="mix-label">All instruments</span>
+      <input id="band-vol" type="range" min="0" max="100" aria-label="Volume of the whole band">
+    </div>
     <div class="mix" id="band-mix"></div>
   </section>
 
   <section class="card">
-    <h2>Piano</h2>
+    <h2>Mix</h2>
+    <div class="mix group-row">
+      <span class="mix-label">Master</span>
+      <input id="master-vol" type="range" min="0" max="100" aria-label="Overall volume">
+    </div>
     <div class="mix">
       <label class="switch"><input type="checkbox" id="rh-on" checked><span>Right hand</span></label>
       <input id="rh-vol" type="range" min="0" max="100" aria-label="Right hand volume">
@@ -119,6 +127,6 @@
   </div>
 </nav>
 <video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

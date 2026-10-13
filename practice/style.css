@@ -134,6 +134,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
 .seg-4 { grid-template-columns: repeat(2, 1fr); }
 .seg-band { grid-template-columns: repeat(4, 1fr); }
 .switch.absent { opacity: .45; }
+.mix-label { font-weight: 700; min-width: 7.5em; }
+.group-row { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .sub-head { padding-top: 10px; border-top: 1px solid var(--line); }
 
 .switch { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; }

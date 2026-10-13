@@ -22,7 +22,9 @@ limiter.knee.value = 0;
 limiter.ratio.value = 20;
 limiter.attack.value = 0;
 limiter.release.value = 0.1;
-musicComp.connect(limiter).connect(ctx.destination);
+// Master volume: music goes compressor -> master -> limiter; the click's level is scaled to match.
+const musicMaster = ctx.createGain();
+musicComp.connect(musicMaster).connect(limiter).connect(ctx.destination);
 // Click: its own path, so it isn't squashed by the piano's compressor. A soft clipper lets the
 // volume go well past full scale; the tick just gets denser instead of distorting harshly.
 const clickPre = ctx.createGain();
@@ -36,10 +38,13 @@ for (const name of ['RH', 'LH', 'click', 'countin', 'preview']) {
   bus[name] = ctx.createGain();
   bus[name].connect(HANDS.includes(name) ? musicComp : clickPre);
 }
+// Band instruments -> one band group (the "All instruments" slider) -> the music compressor.
+const bandGroup = ctx.createGain();
+bandGroup.connect(musicComp);
 function partBus(part) {   // band instruments get their own volume control on first use
   if (!bus[part]) {
     bus[part] = ctx.createGain();
-    bus[part].connect(musicComp);
+    bus[part].connect(bandGroup);
     applyMix(true);
   }
   return bus[part];
@@ -56,6 +61,7 @@ const S = Object.assign({
   clickOn: false, clickVol: 70, clickSound: 'metronome', clickAccent: false,
   countInBeats: 4, loopCountIn: true, pedal: true, view: 'measures',
   band: 'full',      // band arrangement: off / simple / moving / full
+  masterVol: 75, bandVol: 75,
   inst: {},          // band instrument -> { on, vol }
   perSong: {},
 }, readStore());
@@ -279,6 +285,7 @@ function silenceAll() {
 // ---------- mix ----------
 const volGain = (v) => Math.pow(v / 100, 2) * 1.6;
 const instState = (id) => (S.inst[id] ||= { on: true, vol: 75 });
+const groupGain = (v) => Math.pow(v / 75, 2);         // 75 = as mixed; up to about +5 dB
 const clickGain = (v) => Math.pow(v / 100, 2) * 5;   // much more headroom than the piano
 function applyMix(instant) {
   const set = (node, value) => instant ? (node.gain.value = value) : node.gain.setTargetAtTime(value, ctx.currentTime, 0.03);
@@ -287,6 +294,9 @@ function applyMix(instant) {
   set(bus.click, S.clickOn ? clickGain(S.clickVol) : 0);
   set(bus.countin, clickGain(Math.max(S.clickVol, 30)));  // count-in stays audible even with the click off
   set(bus.preview, clickGain(S.clickVol));
+  set(musicMaster, groupGain(S.masterVol));
+  set(clickPre, 0.25 * groupGain(S.masterVol));
+  set(bandGroup, groupGain(S.bandVol));
   const version = song && bandVersion();
   for (const inst of song?.band?.instruments || []) {
     if (!bus[inst.id]) continue;
@@ -824,7 +834,7 @@ function bindControls() {
     $(id).checked = S[key];
     $(id).addEventListener('change', (e) => { S[key] = e.target.checked; save(); applyMix(); });
   }
-  const sliders = { 'rh-vol': 'rhVol', 'lh-vol': 'lhVol', 'click-vol': 'clickVol' };
+  const sliders = { 'rh-vol': 'rhVol', 'lh-vol': 'lhVol', 'click-vol': 'clickVol', 'master-vol': 'masterVol', 'band-vol': 'bandVol' };
   for (const [id, key] of Object.entries(sliders)) {
     $(id).value = S[key];
     $(id).addEventListener('input', (e) => { S[key] = Number(e.target.value); save(); applyMix(); });
