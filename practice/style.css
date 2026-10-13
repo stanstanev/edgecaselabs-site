@@ -80,7 +80,8 @@ header { display: flex; align-items: center; gap: 10px; justify-content: space-b
 button:disabled { opacity: .45; }
 
 .card, .map { background: var(--card); border-radius: 18px; padding: 14px; display: grid; gap: 12px; border: 1px solid var(--line); }
-.row-head { display: flex; align-items: center; justify-content: space-between; }
+.row-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.head-toggles { display: flex; align-items: center; gap: 16px; }
 .hint { margin: 0; font-size: 13px; color: var(--muted); min-height: 1.35em; }
 
 #pages { display: grid; gap: 12px; }

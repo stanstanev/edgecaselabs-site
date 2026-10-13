@@ -68,6 +68,7 @@ const S = Object.assign({
   lhOn: true, lhDb: 0,
   clickOn: false, clickDb: 0, clickSound: 'metronome', clickAccent: false,
   countInBeats: 4, loopCountIn: true, pedal: true, view: 'measures',
+  follow: true,      // the sheet scrolls to keep the current measure in view
   band: 'full',      // band arrangement: off / simple / moving / full
   masterDb: 0, bandDb: 0,
   inst: {},          // band instrument -> { on, db }
@@ -522,7 +523,7 @@ function showPosition(mark) {
   const box = sheet && sheet.rects[mark.measure];
   if (box) {
     box.classList.add('cur');
-    if (S.view === 'sheet' && mark.beat === 1) keepInView(box);
+    if (S.view === 'sheet' && S.follow && mark.beat === 1) keepInView(box);
   }
 }
 function showIdle() {
@@ -596,6 +597,7 @@ async function setView(view) {
   document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
   $('pages').hidden = view !== 'measures';
   $('sheet').hidden = view !== 'sheet';
+  $('follow-wrap').hidden = view !== 'sheet';
   document.querySelector('.map').classList.toggle('sheet-mode', view === 'sheet');
   if (view === 'sheet') await loadSheet();   // measured after it is visible, so sizes are real
 }
@@ -823,6 +825,10 @@ function bindControls() {
     });
     attachRangeGesture($(view));
   }
+  $('follow').addEventListener('change', () => {
+    const current = document.querySelector('.mbox.cur');
+    if (S.follow && current) keepInView(current);   // turning it back on jumps to where the music is
+  });
   $('band').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b) setBand(b.dataset.band);
@@ -873,7 +879,7 @@ function bindControls() {
   $('tempo-slider').addEventListener('input', (e) => setTempo(e.target.value));
   $('tempo-reset').addEventListener('click', () => setTempo(song.tempo));
 
-  const toggles = { 'rh-on': 'rhOn', 'lh-on': 'lhOn', 'click-on': 'clickOn', 'click-accent': 'clickAccent', 'loop-countin': 'loopCountIn', pedal: 'pedal' };
+  const toggles = { 'rh-on': 'rhOn', 'lh-on': 'lhOn', 'click-on': 'clickOn', 'click-accent': 'clickAccent', 'loop-countin': 'loopCountIn', pedal: 'pedal', follow: 'follow' };
   for (const [id, key] of Object.entries(toggles)) {
     $(id).checked = S[key];
     $(id).addEventListener('change', (e) => { S[key] = e.target.checked; save(); applyMix(); });
