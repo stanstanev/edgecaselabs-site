@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>Play Along</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 <div class="scroller">
@@ -30,10 +30,14 @@
 
   <section class="map">
     <div class="row-head">
-      <h2>Measures</h2>
+      <div class="seg seg-view" id="view" role="group" aria-label="View">
+        <button data-view="measures">Measures</button>
+        <button data-view="sheet">Sheet</button>
+      </div>
       <label class="switch"><input type="checkbox" id="loop"><span>Loop</span></label>
     </div>
-    <div id="pages"></div>
+    <div id="pages" class="pickable"></div>
+    <div id="sheet" class="sheet pickable" hidden></div>
     <p id="map-hint" class="hint"></p>
   </section>
 
@@ -101,6 +105,6 @@
   </div>
 </nav>
 <video id="keepawake" src="keepawake.mp4" playsinline muted loop hidden></video>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

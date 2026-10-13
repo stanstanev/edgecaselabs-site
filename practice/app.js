@@ -39,7 +39,7 @@ const S = Object.assign({
   rhOn: true, rhVol: 75,
   lhOn: true, lhVol: 75,
   clickOn: false, clickVol: 70, clickSound: 'metronome', clickAccent: false,
-  countInBeats: 4, loopCountIn: true, pedal: true,
+  countInBeats: 4, loopCountIn: true, pedal: true, view: 'measures',
   perSong: {},
 }, readStore());
 function readStore() {
@@ -57,6 +57,8 @@ let lineOf = {};    // measure -> { page, line, last }
 
 async function loadSong(id) {
   song = await (await fetch(`songs/${id}.json`)).json();
+  sheet = null;
+  $('sheet').innerHTML = '';
   const bpb = song.beatsPerBar;
   notes = [];
   song.measures.forEach((m, i) => {
@@ -311,7 +313,8 @@ function stop(silence) {
   P.markers = [];
   if (silence) silenceAll();
   if (was) keepAwake(false);
-  document.querySelectorAll('.m.cur').forEach((b) => b.classList.remove('cur'));
+  document.querySelectorAll('.cur').forEach((b) => b.classList.remove('cur'));
+  lightNotes(null);
   setBeatDots(0);
   renderTransport();
 }
@@ -354,6 +357,14 @@ function schedule(a, b) {
     const end = S.pedal ? Math.max(n.beat + n.len, n.barEnd) : n.beat + n.len;
     playNote(n.midi, b2t(n.beat), (end - n.beat) * spb - 0.03, n.hand, n.vel);
   }
+  if (sheet) {
+    for (let i = 0; i < sheet.q.length; i++) {
+      const q = sheet.q[i];
+      if (q < a - 1e-9 || q < P.startBeat - 1e-9) continue;
+      if (q >= b - 1e-9) break;
+      P.markers.push({ t: b2t(q), noteIdx: i });
+    }
+  }
 }
 
 function setTempo(v) {
@@ -369,8 +380,10 @@ function frame() {
   const now = ctx.currentTime - (ctx.outputLatency || 0);
   let mark = null;
   while (P.markers.length && P.markers[0].t <= now) {
-    mark = P.markers.shift();
-    if (mark.done) { finish(); return; }
+    const m = P.markers.shift();
+    if (m.done) { finish(); return; }
+    if (m.noteIdx !== undefined) lightNotes(m.noteIdx);
+    else mark = m;
   }
   if (mark) showPosition(mark);
   if (P.playing) P.raf = requestAnimationFrame(frame);
@@ -393,6 +406,7 @@ function where(m) {
 function showPosition(mark) {
   setBeatDots(mark.beat, mark.countIn);
   if (mark.countIn) {
+    lightNotes(null);
     $('now-main').textContent = `Count-in ${mark.beat}`;
     $('now-sub').textContent = `Measure ${mark.next} next · ${where(mark.next)}`;
     return;
@@ -400,14 +414,154 @@ function showPosition(mark) {
   $('now-main').textContent = `Measure ${mark.measure}`;
   const r = loopRange();
   $('now-sub').textContent = where(mark.measure) + (r ? ` · looping ${span(r)}` : '');
-  document.querySelectorAll('.m.cur').forEach((b) => b.classList.remove('cur'));
+  document.querySelectorAll('.cur').forEach((b) => b.classList.remove('cur'));
   document.querySelector(`.m[data-m="${mark.measure}"]`)?.classList.add('cur');
+  const box = sheet && sheet.rects[mark.measure];
+  if (box) {
+    box.classList.add('cur');
+    if (S.view === 'sheet' && mark.beat === 1) keepInView(box);
+  }
 }
 function showIdle() {
   const st = songState();
   $('now-main').textContent = `Measure ${st.start}`;
   $('now-sub').textContent = where(st.start);
   setBeatDots(0);
+}
+
+// ---------- sheet music ----------
+let sheet = null;   // { rects: {measure: <rect>}, q: [beats], activeAt: [[note ids]], lit: [elements] }
+
+async function loadSheet() {
+  if (sheet || !song.sheet) return;
+  const base = `songs/${song.id}/`;
+  const data = await (await fetch(base + 'sheet.json')).json();
+  const box = $('sheet');
+  box.innerHTML = '';
+  for (const name of data.pages) {
+    const page = document.createElement('div');
+    page.className = 'sheet-page';
+    page.innerHTML = await (await fetch(base + name)).text();
+    box.appendChild(page);
+  }
+  // A box behind each measure, spanning both staves: shows the loop/current measure and catches taps.
+  const rects = {};
+  for (const [id, n] of Object.entries(data.measures)) {
+    const g = document.getElementById(id);
+    if (!g) continue;
+    g.dataset.m = n;
+    const mb = g.getBBox(), sb = (g.closest('g.system') || g).getBBox();
+    const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r.setAttribute('x', mb.x);
+    r.setAttribute('width', mb.width);
+    r.setAttribute('y', sb.y);
+    r.setAttribute('height', sb.height);
+    r.setAttribute('class', 'mbox');
+    r.dataset.m = n;
+    g.parentNode.insertBefore(r, g);
+    rects[n] = r;
+  }
+  // Which notes are sounding at each point in the time map.
+  const sounding = new Set(), activeAt = [];
+  for (const e of data.timemap) {
+    e.off.forEach((id) => sounding.delete(id));
+    e.on.forEach((id) => sounding.add(id));
+    activeAt.push([...sounding]);
+  }
+  sheet = { rects, q: data.timemap.map((e) => e.q), activeAt, lit: [] };
+  renderMap();
+}
+
+function lightNotes(i) {
+  if (!sheet) return;
+  for (const el of sheet.lit) el.classList.remove('playing');
+  sheet.lit = i === null ? [] : sheet.activeAt[i].map((id) => document.getElementById(id)).filter(Boolean);
+  for (const el of sheet.lit) el.classList.add('playing');
+}
+
+function keepInView(el) {
+  const sc = document.querySelector('.scroller');
+  const r = el.getBoundingClientRect(), view = sc.getBoundingClientRect();
+  if (r.top < view.top + 8 || r.bottom > view.bottom - 8) {
+    sc.scrollTo({ top: sc.scrollTop + (r.top - view.top) - view.height * 0.15, behavior: 'smooth' });
+  }
+}
+
+async function setView(view) {
+  S.view = view;
+  save();
+  document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
+  $('pages').hidden = view !== 'measures';
+  $('sheet').hidden = view !== 'sheet';
+  if (view === 'sheet') await loadSheet();   // measured after it is visible, so sizes are real
+}
+
+// Press and hold a measure, then drag across measures to loop them (works in both views).
+// A quick swipe still scrolls; a quick tap still picks a start measure.
+let suppressClick = false;
+function measureAt(x, y) {
+  const hit = document.elementFromPoint(x, y)?.closest('[data-m]');
+  return hit ? Number(hit.dataset.m) : null;
+}
+function previewRange(a, b) {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  document.querySelectorAll('.m, .mbox').forEach((el) => {
+    const m = Number(el.dataset.m);
+    el.classList.toggle('inloop', m >= lo && m <= hi);
+    el.classList.toggle('sel', m === lo);
+  });
+}
+function commitRange(a, b) {
+  const st = songState();
+  st.start = Math.min(a, b);
+  st.loopEnd = Math.max(a, b);
+  st.loop = true;
+  $('loop').checked = true;
+  awaitingLoopEnd = false;
+  save();
+  renderMap();
+  if (P.playing) start(st.start);
+  else showIdle();
+}
+function attachRangeGesture(el) {
+  let timer = null, from = null, to = null, origin = null, selecting = false;
+  const reset = () => { clearTimeout(timer); timer = null; selecting = false; from = null; };
+  el.addEventListener('touchstart', (e) => {
+    reset();
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    from = to = measureAt(t.clientX, t.clientY);
+    if (from === null) return;
+    origin = [t.clientX, t.clientY];
+    timer = setTimeout(() => { selecting = true; previewRange(from, to); }, 350);
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (selecting) {
+      e.preventDefault();   // hold-and-drag selects instead of scrolling
+      const m = measureAt(t.clientX, t.clientY);
+      if (m !== null && m !== to) { to = m; previewRange(from, to); }
+    } else if (timer && Math.hypot(t.clientX - origin[0], t.clientY - origin[1]) > 10) {
+      reset();              // moved early: it's a scroll
+    }
+  }, { passive: false });
+  el.addEventListener('touchend', (e) => {
+    if (selecting) { e.preventDefault(); commitRange(from, to); }
+    reset();
+  });
+  el.addEventListener('touchcancel', () => { if (selecting) renderMap(); reset(); });
+  // Mouse: press and drag across measures.
+  el.addEventListener('mousedown', (e) => { from = to = measureAt(e.clientX, e.clientY); selecting = false; });
+  el.addEventListener('mousemove', (e) => {
+    if (from === null || !(e.buttons & 1)) return;
+    const m = measureAt(e.clientX, e.clientY);
+    if (m !== null && m !== to) { to = m; selecting = true; previewRange(from, to); }
+  });
+  window.addEventListener('mouseup', () => {
+    if (selecting) { commitRange(from, to); suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); }
+    selecting = false;
+    from = null;
+  });
 }
 
 // ---------- UI ----------
@@ -436,9 +590,15 @@ function renderMap() {
     }
     box.appendChild(page);
   });
+  if (sheet) {
+    for (const [m, box] of Object.entries(sheet.rects)) {
+      box.classList.toggle('sel', Number(m) === st.start);
+      box.classList.toggle('inloop', !!r && m >= r.from && m <= r.to);
+    }
+  }
   $('map-hint').textContent = r
-    ? (awaitingLoopEnd ? `Looping ${span(r)}. Tap a later measure to move the loop's end.` : `Looping ${span(r)}. Tap a measure to start a new loop there.`)
-    : `Play starts at measure ${st.start}. Tap any measure to start there.`;
+    ? (awaitingLoopEnd ? `Looping ${span(r)}. Tap the last measure of your loop, or press and hold, then drag.` : `Looping ${span(r)}. Tap a measure to start a new loop there.`)
+    : `Play starts at measure ${st.start}. Tap a measure to start there. To loop a section, press and hold, then drag.`;
   renderTransport();
 }
 
@@ -486,9 +646,16 @@ function renderTempo() {
 }
 
 function bindControls() {
-  $('pages').addEventListener('click', (e) => {
-    const b = e.target.closest('.m');
-    if (b) onMeasureTap(Number(b.dataset.m));
+  for (const view of ['pages', 'sheet']) {
+    $(view).addEventListener('click', (e) => {
+      const hit = e.target.closest('[data-m]');
+      if (hit && !suppressClick) onMeasureTap(Number(hit.dataset.m));
+    });
+    attachRangeGesture($(view));
+  }
+  $('view').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setView(b.dataset.view);
   });
   const ready = () => !$('play').disabled;
   const playOrStop = () => (P.playing ? stop(true) : start(songState().start));
@@ -580,6 +747,7 @@ function bindControls() {
     save();
     await loadSong(S.song);
     $('loop').checked = songState().loop;
+    await setView(S.view === 'sheet' && song.sheet ? 'sheet' : 'measures');
   });
 }
 
@@ -592,6 +760,7 @@ async function main() {
   $('song').value = S.song;
   await loadSong(S.song);
   $('loop').checked = songState().loop;
+  await setView(S.view === 'sheet' && song.sheet ? 'sheet' : 'measures');
   try {
     await loadSamples();
     $('status').textContent = '';

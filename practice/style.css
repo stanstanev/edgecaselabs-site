@@ -8,6 +8,8 @@
   --accent-ink: #ffffff;
   --accent-soft: #f7e2c9;
   --btn: #ece7df;
+  --paper: #fffdf8;
+  --note-lit: #d9561f;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -21,10 +23,13 @@
     --accent-ink: #1a1206;
     --accent-soft: #3a2c1c;
     --btn: #2a303d;
+    --paper: #f4f0e6;
+    --note-lit: #d9561f;
   }
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 /* App-shell layout: the page itself never scrolls (only .scroller does), so mobile browsers
    never collapse their toolbars and the Play/Restart bar never moves on screen. */
 html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg); color: var(--ink); }
@@ -81,6 +86,22 @@ button:disabled { opacity: .45; }
 #pages { display: grid; gap: 12px; }
 .page-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .line { display: flex; gap: 6px; margin-bottom: 6px; }
+.pickable { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+.seg-view { grid-template-columns: repeat(2, auto); }
+.seg-view button { height: 36px; padding: 0 16px; font-size: 15px; }
+
+/* Sheet view: engraved pages on paper; measure boxes sit behind the notes */
+.sheet { display: grid; gap: 12px; }
+.sheet-page { background: var(--paper); color: #1d1f24; border-radius: 10px; padding: 4px 2px; }
+.sheet-page svg { display: block; width: 100%; height: auto; }
+/* !important: Verovio's own embedded styles (#page-id rect {stroke}) would otherwise win */
+.mbox { fill: transparent; stroke: none !important; }
+.mbox.inloop { fill: rgba(217, 130, 43, .14); }
+.mbox.sel { stroke: var(--accent) !important; stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.mbox.cur { fill: rgba(217, 130, 43, .28); }
+.sheet g.note.playing, .sheet g.note.playing * { color: var(--note-lit); fill: var(--note-lit); }
+
 .m {
   flex: 1; height: 48px; border-radius: 10px; border: 2px solid transparent;
   background: var(--btn); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
