@@ -132,6 +132,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
 .seg button { height: 46px; border-radius: 12px; border: 2px solid transparent; background: var(--btn); font-weight: 700; font-variant-numeric: tabular-nums; }
 .seg button.on { background: var(--accent); color: var(--accent-ink); }
 .seg-4 { grid-template-columns: repeat(2, 1fr); }
+.seg-band { grid-template-columns: repeat(4, 1fr); }
+.switch.absent { opacity: .45; }
 .sub-head { padding-top: 10px; border-top: 1px solid var(--line); }
 
 .switch { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; user-select: none; -webkit-user-select: none; }

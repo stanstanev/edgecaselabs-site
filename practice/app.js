@@ -6,16 +6,23 @@ const $ = (id) => document.getElementById(id);
 const LOOKAHEAD = 0.15;     // seconds of audio scheduled ahead of the playhead
 const TICK_MS = 25;         // how often the scheduler wakes up
 const STEP = 0.25;          // beats scheduled per scheduler step
-const SAMPLE_LOW = 36, SAMPLE_HIGH = 84;   // samples/piano/36.m4a .. 84.m4a (C2..C6)
 const DEFAULT_VELOCITY = 80;
+const HANDS = ['RH', 'LH'];
 
 // ---------- audio graph ----------
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-// Piano: hands -> gentle compressor (keeps stacked chords from clipping) -> speakers.
-const pianoComp = ctx.createDynamicsCompressor();
-pianoComp.threshold.value = -10;
-pianoComp.ratio.value = 4;
-pianoComp.connect(ctx.destination);
+// Music (piano hands and band): -> gentle compressor (keeps stacked chords from clipping) -> speakers.
+const musicComp = ctx.createDynamicsCompressor();
+musicComp.threshold.value = -10;
+musicComp.ratio.value = 4;
+// A fast limiter after it catches the peaks when the whole band and piano hit together.
+const limiter = ctx.createDynamicsCompressor();
+limiter.threshold.value = -4;
+limiter.knee.value = 0;
+limiter.ratio.value = 20;
+limiter.attack.value = 0;
+limiter.release.value = 0.1;
+musicComp.connect(limiter).connect(ctx.destination);
 // Click: its own path, so it isn't squashed by the piano's compressor. A soft clipper lets the
 // volume go well past full scale; the tick just gets denser instead of distorting harshly.
 const clickPre = ctx.createGain();
@@ -27,9 +34,17 @@ clickPre.connect(clickShaper).connect(ctx.destination);
 const bus = {};
 for (const name of ['RH', 'LH', 'click', 'countin', 'preview']) {
   bus[name] = ctx.createGain();
-  bus[name].connect(name === 'RH' || name === 'LH' ? pianoComp : clickPre);
+  bus[name].connect(HANDS.includes(name) ? musicComp : clickPre);
 }
-const samples = {};       // midi -> { buf, offset }
+function partBus(part) {   // band instruments get their own volume control on first use
+  if (!bus[part]) {
+    bus[part] = ctx.createGain();
+    bus[part].connect(musicComp);
+    applyMix(true);
+  }
+  return bus[part];
+}
+let sampleSets = {};      // set name -> { notes, level, oneShot, bufs: {midi: {buf, offset}} }
 const active = new Set(); // sounding/scheduled nodes, so Stop can silence them
 
 // ---------- settings (remembered on this device) ----------
@@ -40,6 +55,8 @@ const S = Object.assign({
   lhOn: true, lhVol: 75,
   clickOn: false, clickVol: 70, clickSound: 'metronome', clickAccent: false,
   countInBeats: 4, loopCountIn: true, pedal: true, view: 'measures',
+  band: 'full',      // band arrangement: off / simple / moving / full
+  inst: {},          // band instrument -> { on, vol }
   perSong: {},
 }, readStore());
 function readStore() {
@@ -52,25 +69,14 @@ const songState = () => (S.perSong[S.song] ||= { tempo: null, start: 1, loop: fa
 
 // ---------- song data ----------
 let song = null;    // JSON from tools/export_web.py
-let notes = [];     // flattened, sorted by beat: { beat, len, midi, hand, vel, barEnd }
+let notes = [];     // flattened, sorted by beat: { beat, len, midi, part, set, vel, barEnd }
 let lineOf = {};    // measure -> { page, line, last }
 
 async function loadSong(id) {
   song = await (await fetch(`songs/${id}.json`)).json();
   sheet = null;
   $('sheet').innerHTML = '';
-  const bpb = song.beatsPerBar;
-  notes = [];
-  song.measures.forEach((m, i) => {
-    for (const hand of ['RH', 'LH']) {
-      for (const [start, len, pitches, vel] of m[hand] || []) {
-        for (const midi of pitches) {
-          notes.push({ beat: i * bpb + start, len, midi, hand, vel: vel || DEFAULT_VELOCITY, barEnd: (i + 1) * bpb });
-        }
-      }
-    }
-  });
-  notes.sort((a, b) => a.beat - b.beat);
+  buildNotes();
   lineOf = {};
   song.pages.forEach((lines, p) => lines.forEach((ms, l) => {
     for (const m of ms) lineOf[m] = { page: p + 1, line: l + 1, last: ms[ms.length - 1] };
@@ -81,6 +87,33 @@ async function loadSong(id) {
   renderMap();
   renderTempo();
   showIdle();
+}
+
+function bandVersion() {
+  return song.band?.versions.find((v) => v.id === S.band) || null;
+}
+// Everything that plays, in time order: the piano hands plus the chosen band version.
+function buildNotes() {
+  const bpb = song.beatsPerBar;
+  notes = [];
+  song.measures.forEach((m, i) => {
+    for (const hand of HANDS) {
+      for (const [start, len, pitches, vel] of m[hand] || []) {
+        for (const midi of pitches) {
+          notes.push({ beat: i * bpb + start, len, midi, part: hand, set: 'piano', vel: vel || DEFAULT_VELOCITY, barEnd: (i + 1) * bpb });
+        }
+      }
+    }
+  });
+  const version = bandVersion();
+  for (const [part, events] of Object.entries(version?.parts || {})) {
+    for (const [m, start, len, pitches, vel] of events) {
+      for (const midi of pitches) {
+        notes.push({ beat: (m - 1) * bpb + start, len, midi, part, set: part, vel, barEnd: m * bpb });
+      }
+    }
+  }
+  notes.sort((a, b) => a.beat - b.beat);
 }
 
 // ---------- samples ----------
@@ -96,18 +129,28 @@ function onsetSeconds(buf) {
   for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > thr) return Math.max(0, i - 60) / buf.sampleRate;
   return 0;
 }
-async function loadSamples() {
+let manifest = null;
+async function loadSet(name, label) {
+  manifest ||= await (await fetch('samples/index.json')).json();
+  const spec = manifest[name];
+  if (!spec || sampleSets[name]) return;
+  const set = { ...spec, bufs: {} };
   let done = 0;
-  const total = SAMPLE_HIGH - SAMPLE_LOW + 1;
-  const jobs = [];
-  for (let n = SAMPLE_LOW; n <= SAMPLE_HIGH; n++) {
-    jobs.push((async () => {
-      const buf = await decode(await (await fetch(`samples/piano/${n}.m4a`)).arrayBuffer());
-      samples[n] = { buf, offset: onsetSeconds(buf) };
-      $('status').textContent = `Loading piano ${++done}/${total}`;
-    })());
+  await Promise.all(spec.notes.map(async (n) => {
+    const buf = await decode(await (await fetch(`samples/${name}/${n}.m4a`)).arrayBuffer());
+    set.bufs[n] = { buf, offset: onsetSeconds(buf) };
+    if (label) $('status').textContent = `Loading ${label} ${++done}/${spec.notes.length}`;
+  }));
+  sampleSets[name] = set;
+}
+async function loadSamples() {
+  await loadSet('piano', 'piano');
+  renderTransport();   // the piano is enough to start playing
+  const instruments = song.band?.instruments || [];
+  for (const [i, inst] of instruments.entries()) {
+    $('status').textContent = `Loading band ${i + 1}/${instruments.length}`;
+    await loadSet(inst.id);
   }
-  await Promise.all(jobs);
 }
 
 // ---------- sound makers ----------
@@ -116,20 +159,34 @@ function track(src, gain) {
   active.add(item);
   src.onended = () => { active.delete(item); gain.disconnect(); };
 }
-function playNote(midi, when, dur, hand, vel) {
-  const n = Math.min(SAMPLE_HIGH, Math.max(SAMPLE_LOW, midi));
-  const s = samples[n];
-  if (!s) return;
+// Band level corrections (dB), measured in the app so the default mix matches the reviewed preview
+// (the app plays both piano hands at the same volume, which made the band sit a little lower).
+const BAND_TRIM_DB = { bass: 2.7, strings: 3.8, harp: 1.1, cello: 3.5, drums: 0.8 };
+// How each kind of instrument lets go of a note: [extra ring in seconds, release time constant]
+const RELEASE = { piano: [0, 0.06], strings: [0.1, 0.25], cello: [0.05, 0.2], harp: [1.2, 0.3], bass: [0, 0.08] };
+function playNote(note, when, dur) {
+  const set = sampleSets[note.set];
+  if (!set) return;                       // still loading
+  // the recorded note nearest to the one we need, pitch-shifted the rest of the way
+  const n = set.notes.reduce((best, x) => (Math.abs(x - note.midi) < Math.abs(best - note.midi) ? x : best));
+  const s = set.bufs[n];
   const src = ctx.createBufferSource();
   src.buffer = s.buf;
-  if (n !== midi) src.playbackRate.value = Math.pow(2, (midi - n) / 12);
+  if (n !== note.midi) src.playbackRate.value = Math.pow(2, (note.midi - n) / 12);
   const g = ctx.createGain();
-  const level = 0.55 * Math.pow(vel / DEFAULT_VELOCITY, 1.5);
+  const trim = Math.pow(10, (BAND_TRIM_DB[note.set] || 0) / 20);
+  const level = 0.55 * set.level * trim * Math.pow(note.vel / manifest.velocity, 2);
   g.gain.setValueAtTime(level, when);
-  g.gain.setTargetAtTime(0, when + dur, 0.06);  // key/pedal release
-  src.connect(g).connect(bus[hand]);
+  src.connect(g).connect(HANDS.includes(note.part) ? bus[note.part] : partBus(note.part));
   src.start(when, s.offset);
-  src.stop(when + dur + 0.5);
+  if (set.oneShot) {
+    src.stop(when + s.buf.duration);      // drums: let each hit ring out naturally
+  } else {
+    const [ring, tau] = RELEASE[note.set] || RELEASE.piano;
+    const end = when + dur + ring;
+    g.gain.setTargetAtTime(0, end, tau);  // key/pedal release
+    src.stop(end + tau * 6);
+  }
   track(src, g);
 }
 const noiseBuf = (() => {
@@ -221,6 +278,7 @@ function silenceAll() {
 
 // ---------- mix ----------
 const volGain = (v) => Math.pow(v / 100, 2) * 1.6;
+const instState = (id) => (S.inst[id] ||= { on: true, vol: 75 });
 const clickGain = (v) => Math.pow(v / 100, 2) * 5;   // much more headroom than the piano
 function applyMix(instant) {
   const set = (node, value) => instant ? (node.gain.value = value) : node.gain.setTargetAtTime(value, ctx.currentTime, 0.03);
@@ -229,6 +287,12 @@ function applyMix(instant) {
   set(bus.click, S.clickOn ? clickGain(S.clickVol) : 0);
   set(bus.countin, clickGain(Math.max(S.clickVol, 30)));  // count-in stays audible even with the click off
   set(bus.preview, clickGain(S.clickVol));
+  const version = song && bandVersion();
+  for (const inst of song?.band?.instruments || []) {
+    if (!bus[inst.id]) continue;
+    const st = instState(inst.id);
+    set(bus[inst.id], st.on && version?.parts[inst.id] ? volGain(st.vol) : 0);
+  }
 }
 
 // ---------- iPhone audio quirks ----------
@@ -354,8 +418,9 @@ function schedule(a, b) {
   for (const n of notes) {
     if (n.beat < a - 1e-9 || n.beat < P.startBeat - 1e-9) continue;
     if (n.beat >= b - 1e-9) break;
-    const end = S.pedal ? Math.max(n.beat + n.len, n.barEnd) : n.beat + n.len;
-    playNote(n.midi, b2t(n.beat), (end - n.beat) * spb - 0.03, n.hand, n.vel);
+    const pedalled = S.pedal && HANDS.includes(n.part);
+    const end = pedalled ? Math.max(n.beat + n.len, n.barEnd) : n.beat + n.len;
+    playNote(n, b2t(n.beat), (end - n.beat) * spb - 0.03);
   }
   if (sheet) {
     for (let i = 0; i < sheet.q.length; i++) {
@@ -631,7 +696,7 @@ function onMeasureTap(m) {
 function renderTransport() {
   const st = songState();
   document.body.classList.toggle('is-playing', P.playing);
-  const ready = !!song && Object.keys(samples).length > 0;
+  const ready = !!song && !!sampleSets.piano;
   $('play').disabled = !ready;
   $('play').classList.toggle('stop', P.playing);
   $('play-label').textContent = P.playing ? '■ Stop' : `▶ Play from ${st.start}`;
@@ -639,6 +704,54 @@ function renderTransport() {
   const again = P.lastStart || st.start;
   $('restart').disabled = !ready;
   $('restart-label').textContent = `⟲ Restart ${again}`;
+}
+
+// ---------- band ----------
+function renderBand() {
+  const card = $('band-card');
+  card.hidden = !song.band;
+  if (!song.band) return;
+  document.querySelectorAll('#band button').forEach((b) => b.classList.toggle('on', b.dataset.band === S.band));
+  const version = bandVersion();
+  const box = $('band-mix');
+  box.innerHTML = '';
+  for (const inst of song.band.instruments) {
+    const st = instState(inst.id);
+    const inVersion = !!version?.parts[inst.id];
+    const firstVersion = song.band.versions.find((v) => v.parts[inst.id]);
+    const label = document.createElement('label');
+    label.className = 'switch' + (inVersion ? '' : ' absent');
+    label.innerHTML = `<input type="checkbox" id="inst-${inst.id}-on"><span>${inst.name}</span>`;
+    const toggle = label.querySelector('input');
+    toggle.checked = st.on;
+    toggle.disabled = !inVersion;
+    toggle.addEventListener('change', () => { st.on = toggle.checked; save(); applyMix(); });
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 0;
+    slider.max = 100;
+    slider.id = `inst-${inst.id}-vol`;
+    slider.value = st.vol;
+    slider.disabled = !inVersion;
+    slider.setAttribute('aria-label', `${inst.name} volume`);
+    slider.addEventListener('input', () => { st.vol = Number(slider.value); save(); applyMix(); });
+    box.append(label, slider);
+    if (!inVersion && firstVersion && S.band !== 'off') {
+      const last = song.band.versions[song.band.versions.length - 1];
+      const when = firstVersion === last ? `${last.name} only` : `from ${firstVersion.name}`;
+      label.querySelector('span').textContent = `${inst.name} (${when})`;
+    }
+  }
+  $('band-hint').textContent = S.band === 'off'
+    ? 'Just you and the piano.'
+    : { simple: 'Soft drums, bass and a string pad.', moving: 'Adds harp and moving strings.', full: 'Adds the cello countermelody and a busier groove.' }[S.band] || '';
+}
+function setBand(id) {
+  S.band = id;
+  save();
+  buildNotes();     // takes effect right away, even mid-song
+  renderBand();
+  applyMix();
 }
 
 function renderTempo() {
@@ -656,6 +769,10 @@ function bindControls() {
     });
     attachRangeGesture($(view));
   }
+  $('band').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setBand(b.dataset.band);
+  });
   $('view').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (b) setView(b.dataset.view);
@@ -751,6 +868,8 @@ function bindControls() {
     await loadSong(S.song);
     $('loop').checked = songState().loop;
     await setView(S.view === 'sheet' && song.sheet ? 'sheet' : 'measures');
+    renderBand();
+    loadSamples();
   });
 }
 
@@ -764,6 +883,7 @@ async function main() {
   await loadSong(S.song);
   $('loop').checked = songState().loop;
   await setView(S.view === 'sheet' && song.sheet ? 'sheet' : 'measures');
+  renderBand();
   try {
     await loadSamples();
     $('status').textContent = '';
